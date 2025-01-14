@@ -1,4 +1,5 @@
 import time
+from decimal import Decimal
 import gc
 import json
 import sys
@@ -41,63 +42,51 @@ def info_all():
     info_power()
     print("Дел сделано сегодня: " + str(dela_count))
 
+def start(nick):
+    with open("start_params.json", "r", encoding="utf-8") as savefile:
+        all_data = json.loads(savefile.read())
+
+        globals()["nick"] = str(nick)
+        globals()["day"] = int(all_data["day"])
+        globals()["cash"] = int(all_data["cash"])
+        globals()["power"] = dict(all_data["power"])
+        globals()["dela_count"] = int(all_data["dela_count"])
+
+    for object in all_data.keys():
+        if "class" in all_data[object]:
+            class_ = getattr(sys.modules[__name__], all_data[object]["class"])
+            value_ = all_data[object]["value"]
+            globals()[object]  = class_(**value_)
 
 def save():
+    all_data = {}
+    for object in ("nick", "day", "cash", "power", "dela_count"):
+        value_ = globals()[object]
+        all_data[object] = value_
 
-    main_props = {}
-    main_props["nick"] = nick
-    main_props["day"] = day
-    main_props["cash"] = cash
-    main_props["dela_count"] = dela_count
-    main_props["power"] = power
-    main_props["oil"] = oil.__dict__
-    main_props["benzin"] = benzin.__dict__
-    main_props["ligroin"] = ligroin.__dict__
-    main_props["kerosin"] = kerosin.__dict__
-    main_props["gazoil"] = gazoil.__dict__
-    main_props["mazut"] = mazut.__dict__
-    main_props["ostatok"] = ostatok.__dict__
-    main_props["benzin_R"] = benzin_R.__dict__
-    main_props["benzin_K"] = benzin_K.__dict__
-    main_props["maslo_K"] = maslo_K.__dict__
-    main_props["top_mazut"] = top_mazut.__dict__
-    main_props["a84"] = a84.__dict__
-    main_props["a94"] = a94.__dict__
-    main_props["aviatop"] = aviatop.__dict__
+
+    for object in globals().keys():
+        if isinstance(globals()[object], Liquid):
+            class_ = globals()[object].__class__.__name__
+            value_ = globals()[object].__dict__
+            all_data[object] = {"class": class_, "value": value_}
 
     with open(nick + "_save.json", "w", encoding="utf-8") as savefile:
-        savefile.write(json.dumps(main_props))
+        savefile.write(json.dumps(all_data))
 
 def load():
-    global nick
-    global day
-    global cash
-    global dela_count
-    global power
 
-    with open(nick + "_save.json", "r", encoding="utf-8") as savefile:
-        template = json.loads(savefile.read())
+    with open(nick +"_save.json", "r", encoding="utf-8") as savefile:
+        all_data = json.loads(savefile.read())
 
-    nick = template["nick"]
-    day = template["day"]
-    cash = template["cash"]
-    dela_count = template["dela_count"]
-
-    power = template["power"]
-    oil.__dict__ = template["oil"]
-    benzin.__dict__ = template["benzin"]
-    ligroin.__dict__ = template["ligroin"]
-    kerosin.__dict__ = template["kerosin"]
-    gazoil.__dict__ = template["gazoil"]
-    mazut.__dict__ = template["mazut"]
-    ostatok.__dict__ = template["ostatok"]
-    benzin_R.__dict__ = template["benzin_R"]
-    benzin_K.__dict__ = template["benzin_K"]
-    maslo_K.__dict__ = template["maslo_K"]
-    top_mazut.__dict__ = template["top_mazut"]
-    a84.__dict__ = template["a84"]
-    a94.__dict__ = template["a94"]
-    aviatop.__dict__ = template["aviatop"]
+    for object in ("nick", "day", "cash", "power", "dela_count"):
+        globals()[object] = all_data[object]
+    for object in all_data.keys():
+        if isinstance(all_data[object], Liquid):
+            print(object)
+            class_ = getattr(sys.modules[__name__], all_data[object]["class"])
+            value_ = all_data[object]["value"]
+            globals()[object]  = class_(**value_)
 
 def add_power(how_much: int):
     global cash
@@ -141,7 +130,7 @@ def mix(ingridients, limit, product):
             full_octan += (ing[0].octan * ing[1])
             quantity += ing[1]
     if (full_octan // quantity) < limit:
-        print("Операция смешивания " + product.name + " не может быть выполнена. Летучесть смеси - " + str(full_octan // quantity) + ", меньше " + str(limit))
+        print("Операция смешивания " + product.name + " не может быть выполнена. Октановое число смеси - " + str(full_octan // quantity) + ", меньше " + str(limit))
         return
     for ing in ingridients:
         ing[0].barrels -= ing[1]
@@ -178,21 +167,22 @@ def mix_aviatop(ingridients):
     for ing in ingridients:
         ing[0].barrels -= ing[1]
     product.barrels += quantity
+
     dela_incr()
     print("Операция смешивания " + str(quantity) + " баррелей " +  product.name +  " выполнена")
 
 
 class Liquid:
-
-    def __init__(self, name: str, cost: int, octan: int = 0, for_mazut: int = 0, letuchest: float = 0):
-        self.name = name
-        self.cost = cost
-        self.octan = octan
-        self.for_mazut = for_mazut
-        self.letuchest = letuchest
-        self.dist_params = {}
-        self.barrels = int(0)
-        self.container = {"base": 100, "current": 100}
+    def __init__(self, **vars):
+        #def __init__(self, name: str, cost: int, octan: int = 0, for_mazut: int = 0, letuchest: float = 0):
+        self.name = str(vars["name"])
+        self.cost = int(vars["cost"])
+        self.octan = int(vars["octan"])
+        self.for_mazut = int(vars["for_mazut"])
+        self.letuchest = float(vars["letuchest"])
+        self.dist_params = dict(vars["dist_params"])
+        self.barrels = float(vars["barrels"])
+        self.container = dict(vars["container"])
 
     def sell(self, how_much: int):
         action = "Продажа"
@@ -209,7 +199,6 @@ class Liquid:
 
     def buy(self, how_much: int):
         global cash
-        global dela_count
         action = "Покупка"
         if cash < ((self.cost * 1.5) * how_much):
             self.action_info(action, how_much, False)
@@ -272,78 +261,45 @@ class Liquid:
             print("Операция " + action + " " + str(how_much) + " баррелей " + self.name + " не может быть выполнена")
 
     def info(self):
-        print("Всего " + str(self.barrels) + "/" + str(
-            self.container["current"]) + " баррелей " + self.name + " в наличии")
+        print("Всего " + str(round(self.barrels, 2)) + "/" + str(self.container["current"]) + " баррелей " + self.name + " в наличии")
 
 
 class Oil(Liquid):
-    def __init__(self, name, cost, octan, for_mazut, letuchest,  dist_params: dict):
-        super().__init__(name, cost, octan, for_mazut, letuchest)
-        self.dist_params = dist_params
-
     def peregonka(self, how_much):
         action = "Перегонка"
         self.action_exec(how_much, action)
 
 class PervichkaR(Liquid):
-    def __init__(self, name, cost, octan, for_mazut, letuchest,  dist_params: dict):
-        super().__init__(name, cost, octan, for_mazut, letuchest)
-        self.octan = octan
-        self.dist_params = dist_params
-
     def reforming(self, how_much):
         action = "Реформинг"
         self.action_exec(how_much, action)
 
 
 class PervichkaK(Liquid):
-    def __init__(self, name, cost, octan, for_mazut, letuchest,  dist_params: dict):
-        super().__init__(name, cost, octan, for_mazut, letuchest)
-        self.dist_params = dist_params
-
     def kreking(self, how_much):
         action = "Крекинг"
         self.action_exec(how_much, action)
 
 #################################################################
+print("start")
+#name = input("Введите своё имя\n")
 
-nick = "default"
-day = 1
-dela_count = 0
-cash = 10000
-power = {"base": 100, "current": 100}
+name = "igor"
 
-
-oil = Oil("Нефть", 10, 0, 0, 0,{"benzin": 0.1, "ligroin": 0.2, "kerosin": 0.2, "gazoil": 0.12, "mazut": 0.2, "ostatok": 0.13})
-benzin = PervichkaR("Бензин", 200, 90, 0, 0, {"benzin_R": 0.6})
-ligroin = PervichkaR("Лигроин", 200, 80, 0, 0, {"benzin_R": 0.52})
-kerosin = PervichkaR("Керосин", 200, 70, 0, 0, {"benzin_R": 0.46})
-gazoil = PervichkaK("Газоиль", 200, 0, 10, 1.0, {"benzin_K": 0.28, "maslo_K": 0.68})
-mazut = PervichkaK("Мазут", 200, 0, 3, 0.6, {"benzin_K": 0.2, "maslo_K": 0.75})
-ostatok = Liquid("Остаток", 5, 0, 1, 0)
-benzin_R = Liquid("R-Бензин", 200, 115, 0, 0)
-benzin_K = Liquid("K-Бензин", 200, 105, 0, 0)
-maslo_K = Liquid("K-масло", 200, 0, 4, 1.5)
-top_mazut = Liquid("Топ-мазут", 200, 0, 0, 0)
-a84 = Liquid("Бензин-А84", 200, 84, 0, 0)
-a94 = Liquid("Бензин-А94", 200, 84, 0, 0)
-aviatop = Liquid("Авиатопливо", 200, 0, 0, 0)
-
+start(name)
 save()
 load()
 oil.buy(100)
 oil.peregonka(100)
-
 next_day()
 ligroin.reforming(10)
 gazoil.kreking(10)
-info_all()
-
+benzin_K.info()
 mix_a84(((benzin, 1) , (benzin_K, 2)))
+benzin_K.info()
 mix_aviatop(((maslo_K, 5), (mazut, 10)))
 add_power(20)
 oil.add_container(1)
-
 next_day()
 exit()
 
