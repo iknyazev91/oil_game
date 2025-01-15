@@ -1,0 +1,15 @@
+blessed==1.20.0
+editor==1.6.6
+inquirer==3.4.0
+readchar==4.2.1
+runs==1.2.2
+six~=1.16.0
+wcwidth==0.2.13
+xmod==1.8.1
+
+pip~=24.0
+distro~=1.9.0
+wheel~=0.42.0
+cryptography~=41.0.7
+pillow~=10.2.0
+tornado~=6.4

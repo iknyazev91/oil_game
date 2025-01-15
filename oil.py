@@ -1,11 +1,6 @@
-import time
-from decimal import Decimal
 import gc
 import json
 import sys
-import re
-import types
-
 
 def dela_incr():
     global dela_count
@@ -19,17 +14,17 @@ def next_day():
     for obj in gc.get_objects():
         if isinstance(obj, Liquid) and obj.container["base"] != obj.container["current"]:
             obj.container["current"] = obj.container["base"]
-            print("Хранилище для " + obj.name + " увеличено до " + str(obj.container["current"]))
+            print("Хранилище для {} увеличено до {}".format(obj.name, obj.container["current"]))
     power["current"] = power["base"]
-    print("Мощности восстановлены до " + str(power["current"]) + " кВт")
-    print("День " + str(day))
+    print("Мощности восстановлены до {} кВт".format(power["current"]))
+    print("День {}".format(day))
     save()
 
 def info_cash():
-    print("Баланс: $" + str(cash))
+    print("Баланс: ${}".format(cash))
 
 def info_power():
-    print("Остаток мощности: " + str(power["current"]) + " КВт\nМощностей будет доступно завтра: " + str(power["base"]) + " КВт")
+    print("Остаток мощности: {} КВт. Мощностей будет доступно завтра: {} КВт".format(power["current"], power["base"]))
 
 def info_all():
     liquids = []
@@ -40,7 +35,7 @@ def info_all():
         element.info()
     info_cash()
     info_power()
-    print("Дел сделано сегодня: " + str(dela_count))
+    print("Дел сделано сегодня: {}".format(dela_count))
 
 def start(nick):
     with open("start_params.json", "r", encoding="utf-8") as savefile:
@@ -83,7 +78,6 @@ def load():
         globals()[object] = all_data[object]
     for object in all_data.keys():
         if isinstance(all_data[object], Liquid):
-            print(object)
             class_ = getattr(sys.modules[__name__], all_data[object]["class"])
             value_ = all_data[object]["value"]
             globals()[object]  = class_(**value_)
@@ -93,11 +87,11 @@ def add_power(how_much: int):
     global dela_count
     price = 10
     if cash < (how_much * price):
-        print("Операция увеличения мощности не может быть выполнена. Недостаточно денег. Вы имеете $" + str(cash) +  " , но стоимость сделки $" + str(how_much * price))
+        print("Операция увеличения мощности не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(str(cash), how_much * price))
     else:
         power["base"] += how_much
         dela_incr()
-        print("Операция увеличения мощности до " + str(power["base"]) + " кВт запланирована на завтра")
+        print("Операция увеличения мощности до {} кВт запланирована на завтра".format(power["base"], ))
 
 def craft_mazut(how_much: int):
     ingridients = []
@@ -106,14 +100,14 @@ def craft_mazut(how_much: int):
             ingridients.append(obj)
     for ing in ingridients:
         if (ing.for_mazut * how_much) > ing.barrels:
-            print("Операция смешивания топливного мазута не может быть выполнена\nНедостаточно " + ing.name + ". Вы имеете " + str(ing.barrels) + " баррелей, но необходимо " + str((ing.for_mazut * how_much)))
+            print("Операция смешивания топливного мазута не может быть выполнена\nНедостаточно {}. Вы имеете {} баррелей, но необходимо {}".format(ing.name, ing.barrels, ing.for_mazut * how_much))
             return
     else:
         for ing in ingridients:
             ing.barrels -= (how_much * ing.for_mazut)
         top_mazut.barrels += how_much
         dela_incr()
-        print("Операция смешивания " + str(how_much) + " баррелей топливного мазута выполнена")
+        print("Операция смешивания {} баррелей топливного мазута выполнена".format(how_much))
 
 def mix(ingridients, limit, product):
     full_octan = int(0)
@@ -121,22 +115,22 @@ def mix(ingridients, limit, product):
 
     for ing in ingridients:
         if ing[0].octan == 0:
-            print("Операция смешивания " + product.name + " не может быть выполнена. " + ing[0].name + " не пригоден для этого")
+            print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, ing[0].name))
             return
         elif ing[0].barrels < ing[1]:
-            print("Операция смешивания " + product.name + " не может быть выполнена. Недостаточно " + ing[0].name + ". Вы имеете " + str(ing[0].barrels) + ", a необходимо " + str(ing[1]))
+            print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, ing[0].name, ing[0].barrels, ing[1]))
             return
         else:
             full_octan += (ing[0].octan * ing[1])
             quantity += ing[1]
     if (full_octan // quantity) < limit:
-        print("Операция смешивания " + product.name + " не может быть выполнена. Октановое число смеси - " + str(full_octan // quantity) + ", меньше " + str(limit))
+        print("Операция смешивания {} не может быть выполнена. Октановое число смеси - {}, меньше {}".format(product.name, full_octan // quantity, limit))
         return
     for ing in ingridients:
         ing[0].barrels -= ing[1]
     product.barrels += quantity
     dela_incr()
-    print("Операция смешивания " + str(quantity) + " баррелей " +  product.name +  " выполнена")
+    print("Операция смешивания {} баррелей {} выполнена".format(quantity, product.name))
 
 
 def mix_a84(ingridients):
@@ -153,35 +147,34 @@ def mix_aviatop(ingridients):
 
     for ing in ingridients:
         if ing[0].letuchest == 0:
-            print("Операция смешивания " + product.name + " не может быть выполнена. " + ing[0].name + " не пригоден для этого")
+            print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, ing[0].name))
             return
         elif ing[0].barrels < ing[1]:
-            print("Операция смешивания " + product.name + " не может быть выполнена. Недостаточно " + ing[0].name + ". Вы имеете " + str(ing[0].barrels) + ", a необходимо " + str(ing[1]))
+            print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, ing[0].name, ing[0].barrels, ing[1]))
             return
         else:
             full_letuchest += (ing[0].letuchest * ing[1])
             quantity += ing[1]
     if (full_letuchest / quantity) > 1:
-        print("Операция смешивания " + product.name + " не может быть выполнена. Летучесть смеси - " + str(full_letuchest / quantity) + ", превышает 1 ")
+        print("Операция смешивания {} не может быть выполнена. Летучесть смеси - {}, превышает 1 ".format(product.name, full_letuchest / quantity, ))
         return
     for ing in ingridients:
         ing[0].barrels -= ing[1]
     product.barrels += quantity
 
     dela_incr()
-    print("Операция смешивания " + str(quantity) + " баррелей " +  product.name +  " выполнена")
+    print("Операция смешивания {} баррелей {} выполнена".format(quantity, product.name))
 
 
 class Liquid:
     def __init__(self, **vars):
-        #def __init__(self, name: str, cost: int, octan: int = 0, for_mazut: int = 0, letuchest: float = 0):
         self.name = str(vars["name"])
         self.cost = int(vars["cost"])
         self.octan = int(vars["octan"])
         self.for_mazut = int(vars["for_mazut"])
         self.letuchest = float(vars["letuchest"])
         self.dist_params = dict(vars["dist_params"])
-        self.barrels = float(vars["barrels"])
+        self.barrels = int(vars["barrels"])
         self.container = dict(vars["container"])
 
     def sell(self, how_much: int):
@@ -189,8 +182,7 @@ class Liquid:
         global cash
         if self.barrels < how_much:
             self.action_info(action, how_much, False)
-            print("Недостаточно " + self.name + ". Вы имеете баррелей " + str(
-                self.barrels) + " , но  желаете продать " + str(how_much))
+            print("Недостаточно {}. Вы имеете баррелей {} , но  желаете продать {}".format(self.name, self.barrels, how_much))
         else:
             self.barrels -= how_much
             cash += (self.cost * how_much)
@@ -202,11 +194,11 @@ class Liquid:
         action = "Покупка"
         if cash < ((self.cost * 1.5) * how_much):
             self.action_info(action, how_much, False)
-            print("Недостаточно средств. Вы имеете $" + str(cash) + " , но сумма сделки $" + str((self.cost * 1.5) * how_much))
+            print("Недостаточно средств. Вы имеете ${} , но сумма сделки ${}".format(cash, (self.cost * 1.5) * how_much))
             return
         elif (self.barrels + how_much) > self.container["current"]:
             self.action_info(action, how_much, False)
-            print("Недостаточно места в хранилище " + self.name + " . Всего места на " + str(self.container["current"]) + " баррелей, но вы желаете поместить " + str(self.barrels + how_much))
+            print("Недостаточно места в хранилище {} . Всего места на {} баррелей, но вы желаете поместить {}".format(self.name, self.container["current"], self.barrels + how_much, ))
             return
         else:
             self.barrels += how_much
@@ -218,23 +210,23 @@ class Liquid:
         global power
         if self.barrels < how_much:
             self.action_info(action, how_much, False)
-            print("Недостаточно " + self.name + ". Вы имеете " + str(self.barrels) + " баррелей, но  желаете переработать " + str(how_much))
+            print("Недостаточно {}. Вы имеете {} баррелей, но  желаете переработать {}".format(self.name, self.barrels, how_much))
             return
         elif power["current"] < how_much:
             self.action_info(action, how_much, False)
-            print("Недостаточно мощностей для выполнения " + action + ". Остаток мощности " + str(power["current"]) + " КВт, но вы желаете потратить " + str(how_much) + " кВт")
+            print("Недостаточно мощностей для выполнения {}. Остаток мощности {} КВт, но вы желаете потратить {} кВт".format(action, power["current"], how_much))
             return
         else:
             for key in self.dist_params.keys():
                 if globals()[key].container["current"] < (globals()[key].barrels + (how_much * self.dist_params[key])): #??????
                     self.action_info(action, how_much, False)
-                    print("Недостаточно места в хранилище " + self.name + " . Всего места " + str(globals()[key].container["current"]) + " баррелей, но вы желаете поместить " + str(self.barrels + (how_much * self.dist_params[key])))
+                    print("Недостаточно места в хранилище {} . Всего места {} баррелей, но вы желаете поместить {}".format(self.name, globals()[key].container["current"], self.barrels + (how_much * self.dist_params[key])))
                     return
             else:
                 for key in self.dist_params.keys():
-                    globals()[key].barrels += (how_much * self.dist_params[key])
-                    globals()[key].barrels = round(globals()[key].barrels, 1)
+                    globals()[key].barrels += int(how_much * self.dist_params[key])
                 power["current"] -= how_much
+                power["current"] = int(power["current"])
                 self.barrels -= how_much
                 dela_incr()
                 self.action_info(action, how_much, True)
@@ -245,23 +237,23 @@ class Liquid:
         action = "Расширение хранилища"
         price = 100
         if cash < (how_much * price):
-            print("Операция расширения хранилища для " + self.name + " не может быть выполнена. Недостаточно денег. Вы имеете $" + str(cash) +  " , но стоимость сделки $" + str(how_much * price))
+            print("Операция расширения хранилища для {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(self.name, cash, how_much * price))
             self.action_info(action, (how_much * 100), False)
         else:
             self.container["base"] += (how_much * price)
             cash -= (how_much * price)
             dela_incr()
-            print("Операция " + action + " " + self.name + " на " + str(how_much * 100) + " баррелей запланирована на завтра")
+            print("Операция {} {} на {} баррелей запланирована на завтра".format(action, self.name, how_much * 100))
 
 
     def action_info(self, action: str, how_much: int, suc: bool):
         if suc:
-            print("Операция " + action + " " + str(how_much) + " баррелей " + self.name + " выполнена")
+            print("Операция {} {} баррелей {} выполнена".format(action, how_much, self.name))
         else:
-            print("Операция " + action + " " + str(how_much) + " баррелей " + self.name + " не может быть выполнена")
+            print("Операция {} {} баррелей {} не может быть выполнена".format(action, how_much, self.name))
 
     def info(self):
-        print("Всего " + str(round(self.barrels, 2)) + "/" + str(self.container["current"]) + " баррелей " + self.name + " в наличии")
+        print("Всего {}/{} баррелей {} в наличии".format(self.barrels, self.container["current"], self.name, ))
 
 
 class Oil(Liquid):
@@ -284,11 +276,12 @@ class PervichkaK(Liquid):
 print("start")
 #name = input("Введите своё имя\n")
 
-name = "igor"
+nick = "igor"
 
-start(name)
+start(nick)
 save()
 load()
+cash = 10
 oil.buy(100)
 oil.peregonka(100)
 next_day()
@@ -301,5 +294,6 @@ mix_aviatop(((maslo_K, 5), (mazut, 10)))
 add_power(20)
 oil.add_container(1)
 next_day()
+info_all()
 exit()
 

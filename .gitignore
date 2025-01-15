@@ -1,3 +1,8 @@
 test*
 *_save.json
 .idea/
+bin/
+lib/
+lib64
+.pycharmrc
+pyvenv.cfg
