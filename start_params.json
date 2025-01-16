@@ -1,20 +1,22 @@
 {
-  "nick": "default",
-  "day": "1",
-  "cash": "10000",
+  "nick": "igor",
+  "day": 1,
+  "cash": 10000,
   "power": {
     "base": 100,
     "current": 100
   },
-  "dela_count": "0",
+  "power_price": 20,
+  "barrels_price": 50,
+  "dela_count": 0,
   "oil": {
     "class": "Oil",
     "value": {
-      "name": "\u041d\u0435\u0444\u0442\u044c",
+      "name": "Нефть",
       "cost": 10,
       "octan": 0,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {
         "benzin": 0.1,
         "ligroin": 0.2,
@@ -33,11 +35,11 @@
   "benzin": {
     "class": "PervichkaR",
     "value": {
-      "name": "\u0411\u0435\u043d\u0437\u0438\u043d",
+      "name": "Бензин",
       "cost": 200,
       "octan": 90,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {
         "benzin_R": 0.6
       },
@@ -51,11 +53,11 @@
   "ligroin": {
     "class": "PervichkaR",
     "value": {
-      "name": "\u041b\u0438\u0433\u0440\u043e\u0438\u043d",
+      "name": "Лигроин",
       "cost": 200,
       "octan": 80,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {
         "benzin_R": 0.52
       },
@@ -69,11 +71,11 @@
   "kerosin": {
     "class": "PervichkaR",
     "value": {
-      "name": "\u041a\u0435\u0440\u043e\u0441\u0438\u043d",
+      "name": "Керосин",
       "cost": 200,
       "octan": 70,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {
         "benzin_R": 0.46
       },
@@ -87,7 +89,7 @@
   "gazoil": {
     "class": "PervichkaK",
     "value": {
-      "name": "\u0413\u0430\u0437\u043e\u0438\u043b\u044c",
+      "name": "Газоиль",
       "cost": 200,
       "octan": 0,
       "for_mazut": 10,
@@ -106,7 +108,7 @@
   "mazut": {
     "class": "PervichkaK",
     "value": {
-      "name": "\u041c\u0430\u0437\u0443\u0442",
+      "name": "Мазут",
       "cost": 200,
       "octan": 0,
       "for_mazut": 4,
@@ -125,11 +127,11 @@
   "ostatok": {
     "class": "Liquid",
     "value": {
-      "name": "\u041e\u0441\u0442\u0430\u0442\u043e\u043a",
+      "name": "Остаток",
       "cost": 5,
       "octan": 0,
       "for_mazut": 2,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -141,11 +143,11 @@
   "benzin_R": {
     "class": "Liquid",
     "value": {
-      "name": "R-\u0411\u0435\u043d\u0437\u0438\u043d",
+      "name": "R-Бензин",
       "cost": 200,
       "octan": 115,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -157,11 +159,11 @@
   "benzin_K": {
     "class": "Liquid",
     "value": {
-      "name": "K-\u0411\u0435\u043d\u0437\u0438\u043d",
+      "name": "K-Бензин",
       "cost": 200,
       "octan": 105,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -173,7 +175,7 @@
   "maslo_K": {
     "class": "Liquid",
     "value": {
-      "name": "K-\u043c\u0430\u0441\u043b\u043e",
+      "name": "K-масло",
       "cost": 200,
       "octan": 0,
       "for_mazut": 4,
@@ -189,11 +191,11 @@
   "top_mazut": {
     "class": "Liquid",
     "value": {
-      "name": "\u0422\u043e\u043f-\u043c\u0430\u0437\u0443\u0442",
+      "name": "Топ-мазут",
       "cost": 200,
       "octan": 0,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -205,11 +207,11 @@
   "a84": {
     "class": "Liquid",
     "value": {
-      "name": "\u0411\u0435\u043d\u0437\u0438\u043d-\u041084",
+      "name": "Бензин-А84",
       "cost": 200,
       "octan": 84,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -221,11 +223,11 @@
   "a94": {
     "class": "Liquid",
     "value": {
-      "name": "\u0411\u0435\u043d\u0437\u0438\u043d-\u041094",
+      "name": "Бензин-А94",
       "cost": 200,
       "octan": 84,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -237,11 +239,11 @@
   "aviatop": {
     "class": "Liquid",
     "value": {
-      "name": "\u0410\u0432\u0438\u0430\u0442\u043e\u043f\u043b\u0438\u0432\u043e",
+      "name": "Авиатопливо",
       "cost": 200,
       "octan": 0,
       "for_mazut": 0,
-      "letuchest": 0,
+      "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {

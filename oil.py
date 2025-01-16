@@ -3,13 +3,14 @@ import json
 import sys
 import time
 
+
 def dela_incr(action, how_much):
     global dela_count
-    global all_actions
-    all_actions += 1
+    global all_act_count
+    all_act_count += 1
     dela_count += 1
     timestamp = time.strftime("%d-%M-%y_%H:%M")
-    stroka = "{" + "\"count\" : {}, : \"timestamp\" : {}, \"day\" : {}, \"dela\" : {}, \"action\" : {}, \"how_much\" : {}".format(all_actions, timestamp, day, dela_count, action, how_much) + "}"
+    stroka = "{" + "\"count\" : {}, : \"timestamp\" : {}, \"day\" : {}, \"dela\" : {}, \"action\" : {}, \"how_much\" : {}".format(all_act_count, timestamp, day, dela_count, action, how_much) + "}"
     with open(nick + ".log", "a", encoding="utf-8") as savefile:
         savefile.write(stroka + '\n')
 
@@ -54,27 +55,37 @@ def info_all():
 
 
 def start(nick):
-    global all_actions
-    all_actions = 0
+    global all_act_count
+    global power_price
+    global barrels_price
+    barrels_price = 100
+    power_price = 10
+    all_act_count = 0
     with open("start_params.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
-
         globals()["nick"] = str(nick)
         globals()["day"] = int(all_data["day"])
         globals()["cash"] = int(all_data["cash"])
         globals()["power"] = dict(all_data["power"])
         globals()["dela_count"] = int(all_data["dela_count"])
+        globals()["barrels_price"] = int(all_data["barrels_price"])
+        globals()["power_price"] = int(all_data["power_price"])
 
     for object in all_data.keys():
-        if "class" in all_data[object]:
+        if isinstance(all_data[object], dict) and "class" in all_data[object]:
             class_ = getattr(sys.modules[__name__], all_data[object]["class"])
             value_ = all_data[object]["value"]
             globals()[object]  = class_(**value_)
 
+    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    stroka = "{" + "\"start\" : {}".format(timestamp) + "}"
+    with open(nick + ".log", "a", encoding="utf-8") as savefile:
+        savefile.write(stroka + '\n')
+
 
 def save():
     all_data = {}
-    for object in ("nick", "day", "cash", "power", "dela_count"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price"):
         value_ = globals()[object]
         all_data[object] = value_
 
@@ -90,11 +101,10 @@ def save():
 
 
 def load():
-
     with open(nick +"_save.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
 
-    for object in ("nick", "day", "cash", "power", "dela_count"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price"):
         globals()[object] = all_data[object]
 
     for object in all_data.keys():
@@ -108,10 +118,10 @@ def load():
 def add_power(how_much: int):
     global cash
     global dela_count
-    price = 10
+    global power_price
     action = "Увеличение мощности"
-    if cash < (how_much * price):
-        print("Операция {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(action, cash, how_much * price))
+    if cash < (how_much * power_price):
+        print("Операция {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(action, cash, how_much * power_price))
     else:
         power["base"] += how_much
         dela_incr(action, how_much)
@@ -169,6 +179,7 @@ def mix_a84(ingridients):
 def mix_a94(ingridients):
     action = "Смешивание А94"
     mix(action, ingridients, 94, a94)
+
 
 def mix_aviatop(ingridients):
     product = aviatop
@@ -266,14 +277,15 @@ class Liquid:
     def add_container(self, how_much: int):
         global cash
         global dela_count
+        global barrels_price
         action = "Расширение хранилища"
-        price = 100
-        if cash < (how_much * price):
-            print("Операция расширения хранилища для {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(self.name, cash, how_much * price))
+        barrels_price = 100
+        if cash < (how_much * barrels_price):
+            print("Операция расширения хранилища для {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(self.name, cash, how_much * barrels_price))
             self.action_info(action, (how_much * 100), False)
         else:
-            self.container["base"] += (how_much * price)
-            cash -= (how_much * price)
+            self.container["base"] += (how_much * barrels_price)
+            cash -= (how_much * barrels_price)
             dela_incr(action, how_much)
             print("Операция {} {} на {} баррелей запланирована на завтра".format(action, self.name, how_much * 100))
 
@@ -293,6 +305,7 @@ class Oil(Liquid):
         action = "Перегонка " + self.name
         self.action_exec(how_much, action)
 
+
 class PervichkaR(Liquid):
     def reforming(self, how_much):
         action = "Реформинг " + self.name
@@ -311,6 +324,7 @@ if __name__ == "__main__":
 
     nick = "igor"
     start(nick)
+    save()
     oil.buy(100)
     oil.peregonka(100)
     next_day()
