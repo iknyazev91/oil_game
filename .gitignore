@@ -1,8 +1,7 @@
 test*
 *_save.json
 .idea/
-bin/
-lib/
-lib64
+.venv
 .pycharmrc
 pyvenv.cfg
+*.log

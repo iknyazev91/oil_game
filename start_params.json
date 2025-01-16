@@ -109,7 +109,7 @@
       "name": "\u041c\u0430\u0437\u0443\u0442",
       "cost": 200,
       "octan": 0,
-      "for_mazut": 3,
+      "for_mazut": 4,
       "letuchest": 0.6,
       "dist_params": {
         "benzin_K": 0.2,
@@ -128,7 +128,7 @@
       "name": "\u041e\u0441\u0442\u0430\u0442\u043e\u043a",
       "cost": 5,
       "octan": 0,
-      "for_mazut": 1,
+      "for_mazut": 2,
       "letuchest": 0,
       "dist_params": {},
       "barrels": 0,
