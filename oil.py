@@ -2,6 +2,87 @@ import gc
 import json
 import sys
 import time
+import inquirer
+from os.path import isfile
+
+def check_avail_actions():
+    avail_actions = []
+    deny_actions = []
+    actions_dict = dict(buy="Покупка", sell="Продажа", add_power="Купить мощности", add_container="Расширить хранилища", mix_mazut="Смешать топл. мазут",
+                        mix_a84="Смешать бензин А84", mix_a94="Смешать бензин А94", mix_aviatop="Смешать авиатопливо", next_day="Лечь спать")
+    if cash > oil.price:
+        avail_actions.append("buy")
+    else:
+        deny_actions.append("buy")
+
+    all_barrels = 0
+    for obj in get_all():
+        all_barrels += obj.barrels
+    if all_barrels > 0:
+        avail_actions.append("sell")
+    else:
+        deny_actions.append("sell")
+
+    if cash > power_price:
+        avail_actions.append("add_power")
+    else:
+        deny_actions.append("add_power")
+
+    if cash > barrels_price:
+        avail_actions.append("add_container")
+    else:
+        deny_actions.append("add_container")
+
+    if gazoil.barrels >= 10 and maslo_K.barrels >= 4 and mazut.barrels and ostatok.barrels >= 2:
+        avail_actions.append("mix_mazut")
+    else:
+        deny_actions.append("mix_mazut")
+
+    if benzin.barrels > 0 or benzin_K.barrels > 0 or benzin_R.barrels > 0:
+        avail_actions.append("mix_a84")
+    else:
+        deny_actions.append("mix_a84")
+
+    if benzin_K.barrels > 0 or benzin_R.barrels > 0:
+        avail_actions.append("mix_a94")
+    else:
+        deny_actions.append("mix_a94")
+
+    if gazoil.barrels > 0 or mazut.barrels > 0:
+        avail_actions.append("mix_aviatop")
+    else:
+        deny_actions.append("mix_aviatop")
+
+    avail_actions.append("next_day")
+
+    for i in deny_actions:
+        print(i)
+
+    actions = list(actions_dict[i] for i in avail_actions)
+
+    questions = [
+      inquirer.List('action',
+                    message="Выберите действие",
+                    choices=actions,
+                ),
+    ]
+    answers = inquirer.prompt(questions)
+
+    for eng, rus in actions_dict.items():
+        if rus == answers["action"]:
+            globals()["iface_" + eng]()
+
+
+def iface_buy(): print("iface_buy")
+def iface_sell(): print("iface_sell")
+def iface_add_power(): print("iface_add_power")
+def iface_add_container(): print("iface_add_container")
+def iface_mix_mazut(): print("iface_mix_mazut")
+def iface_mix_a84(): print("iface_mix_a84")
+def iface_mix_a94(): print("iface_mix_a94")
+def iface_mix_aviatop(): print("iface_mix_aviatop")
+def iface_next_day():
+    next_day()
 
 
 def dela_incr(action, how_much):
@@ -108,7 +189,6 @@ def load():
         globals()[object] = all_data[object]
 
     for object in all_data.keys():
-
         if isinstance(globals()[object], Liquid):
             class_ = getattr(sys.modules[__name__], all_data[object]["class"])
             value_ = all_data[object]["value"]
@@ -127,7 +207,7 @@ def add_power(how_much: int):
         dela_incr(action, how_much)
         print("Операция увеличения мощности до {} кВт запланирована на завтра".format(power["base"], ))
 
-def craft_mazut(how_much: int):
+def mix_mazut(how_much: int):
     action = "Смешивание топливного мазута"
     ingridients = []
 
@@ -212,7 +292,7 @@ def mix_aviatop(ingridients):
 class Liquid:
     def __init__(self, **vars):
         self.name = str(vars["name"])
-        self.cost = int(vars["cost"])
+        self.price = int(vars["price"])
         self.octan = int(vars["octan"])
         self.for_mazut = int(vars["for_mazut"])
         self.letuchest = float(vars["letuchest"])
@@ -228,16 +308,16 @@ class Liquid:
             print("Недостаточно {}. Вы имеете баррелей {} , но  желаете продать {}".format(self.name, self.barrels, how_much))
         else:
             self.barrels -= how_much
-            cash += (self.cost * how_much)
+            cash += (self.price * how_much)
             dela_incr()
             self.action_info(action, how_much, True)
 
     def buy(self, how_much: int):
         global cash
         action = "Покупка " + self.name
-        if cash < ((self.cost * 1.5) * how_much):
+        if cash < ((self.price * 1.5) * how_much):
             self.action_info(action, how_much, False)
-            print("Недостаточно средств. Вы имеете ${} , но сумма сделки ${}".format(cash, (self.cost * 1.5) * how_much))
+            print("Недостаточно средств. Вы имеете ${} , но сумма сделки ${}".format(cash, (self.price * 1.5) * how_much))
             return
         elif (self.barrels + how_much) > self.container["current"]:
             self.action_info(action, how_much, False)
@@ -245,7 +325,7 @@ class Liquid:
             return
         else:
             self.barrels += how_much
-            cash -= ((self.cost * 1.5) * how_much)
+            cash -= ((self.price * 1.5) * how_much)
             dela_incr(action, how_much)
             self.action_info(action, how_much, True)
 
@@ -317,14 +397,24 @@ class PervichkaK(Liquid):
         action = "Крекинг " + self.name
         self.action_exec(how_much, action)
 
+staaaart = 0
 #################################################################
 if __name__ == "__main__":
     print("start")
     #name = input("Введите своё имя\n")
 
     nick = "igor"
-    start(nick)
-    save()
+
+    if isfile(nick + "_save.json"):
+        start(nick)
+        load()
+    else:
+        start(nick)
+    info_all()
+    check_avail_actions()
+    exit()
+
+    info_all()
     oil.buy(100)
     oil.peregonka(100)
     next_day()
@@ -338,7 +428,7 @@ if __name__ == "__main__":
     oil.add_container(1)
     gazoil.barrels = 10
     maslo_K.barrels = 10
-    craft_mazut(1)
+    mix_mazut(1)
     info_all()
     next_day()
     exit()

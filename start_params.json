@@ -13,7 +13,7 @@
     "class": "Oil",
     "value": {
       "name": "Нефть",
-      "cost": 10,
+      "price": 10,
       "octan": 0,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -36,7 +36,7 @@
     "class": "PervichkaR",
     "value": {
       "name": "Бензин",
-      "cost": 200,
+      "price": 200,
       "octan": 90,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -54,7 +54,7 @@
     "class": "PervichkaR",
     "value": {
       "name": "Лигроин",
-      "cost": 200,
+      "price": 200,
       "octan": 80,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -72,7 +72,7 @@
     "class": "PervichkaR",
     "value": {
       "name": "Керосин",
-      "cost": 200,
+      "price": 200,
       "octan": 70,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -90,7 +90,7 @@
     "class": "PervichkaK",
     "value": {
       "name": "Газоиль",
-      "cost": 200,
+      "price": 200,
       "octan": 0,
       "for_mazut": 10,
       "letuchest": 1.0,
@@ -109,7 +109,7 @@
     "class": "PervichkaK",
     "value": {
       "name": "Мазут",
-      "cost": 200,
+      "price": 200,
       "octan": 0,
       "for_mazut": 4,
       "letuchest": 0.6,
@@ -128,7 +128,7 @@
     "class": "Liquid",
     "value": {
       "name": "Остаток",
-      "cost": 5,
+      "price": 5,
       "octan": 0,
       "for_mazut": 2,
       "letuchest": 0.0,
@@ -144,7 +144,7 @@
     "class": "Liquid",
     "value": {
       "name": "R-Бензин",
-      "cost": 200,
+      "price": 200,
       "octan": 115,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -160,7 +160,7 @@
     "class": "Liquid",
     "value": {
       "name": "K-Бензин",
-      "cost": 200,
+      "price": 200,
       "octan": 105,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -176,7 +176,7 @@
     "class": "Liquid",
     "value": {
       "name": "K-масло",
-      "cost": 200,
+      "price": 200,
       "octan": 0,
       "for_mazut": 4,
       "letuchest": 1.5,
@@ -192,7 +192,7 @@
     "class": "Liquid",
     "value": {
       "name": "Топ-мазут",
-      "cost": 200,
+      "price": 200,
       "octan": 0,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -208,7 +208,7 @@
     "class": "Liquid",
     "value": {
       "name": "Бензин-А84",
-      "cost": 200,
+      "price": 200,
       "octan": 84,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -224,7 +224,7 @@
     "class": "Liquid",
     "value": {
       "name": "Бензин-А94",
-      "cost": 200,
+      "price": 200,
       "octan": 84,
       "for_mazut": 0,
       "letuchest": 0.0,
@@ -240,7 +240,7 @@
     "class": "Liquid",
     "value": {
       "name": "Авиатопливо",
-      "cost": 200,
+      "price": 200,
       "octan": 0,
       "for_mazut": 0,
       "letuchest": 0.0,
