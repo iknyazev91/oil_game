@@ -5,11 +5,34 @@ import time
 import inquirer
 from os.path import isfile
 
+
+
 def check_avail_actions():
     avail_actions = []
     deny_actions = []
-    actions_dict = dict(buy="Покупка", sell="Продажа", add_power="Купить мощности", add_container="Расширить хранилища", mix_mazut="Смешать топл. мазут",
-                        mix_a84="Смешать бензин А84", mix_a94="Смешать бензин А94", mix_aviatop="Смешать авиатопливо", next_day="Лечь спать")
+    actions_dict = dict(
+        buy="Покупка",
+        sell="Продажа",
+        add_power="Увеличение мощности",
+        add_container="Расширение хранилищ",
+        mix_mazut="Смешивание топливного мазута",
+        mix_a84="Смешивание бензина А84",
+        mix_a94="Смешивание бензина А94",
+        mix_aviatop="Смешивание авиатоплива",
+        next_day="Лечь спать",
+        exit="Выйти")
+    deny_dict = dict(
+        buy="Покупка недоступна - недостаточно денег",
+        sell="Продажа недоступна - нечего продавать",
+        add_power="Увеличение мощности недоступно - недостаточно денег",
+        add_container="Расширить хранилища невозможно - недостаточно денег",
+        mix_mazut="Смешать топливный мазут невозможно - недостаточно ингридиентов",
+        mix_a84="Смешать бензин А84 невозможно - недостаточно ингридиентов",
+        mix_a94="Смешать бензин А94 невозможно - недостаточно ингридиентов",
+        mix_aviatop="Смешать авиатопливо невозможно - недостаточно ингридиентов",
+        next_day="Лечь спать",
+        exit="exit")
+
     if cash > oil.price:
         avail_actions.append("buy")
     else:
@@ -33,7 +56,7 @@ def check_avail_actions():
     else:
         deny_actions.append("add_container")
 
-    if gazoil.barrels >= 10 and maslo_K.barrels >= 4 and mazut.barrels and ostatok.barrels >= 2:
+    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut:
         avail_actions.append("mix_mazut")
     else:
         deny_actions.append("mix_mazut")
@@ -54,27 +77,112 @@ def check_avail_actions():
         deny_actions.append("mix_aviatop")
 
     avail_actions.append("next_day")
+    avail_actions.append("exit")
 
-    for i in deny_actions:
-        print(i)
+    #for i in deny_actions:
+    #    print(deny_dict[i])
 
     actions = list(actions_dict[i] for i in avail_actions)
 
-    questions = [
+    select = [
       inquirer.List('action',
                     message="Выберите действие",
                     choices=actions,
                 ),
     ]
-    answers = inquirer.prompt(questions)
+    answers = inquirer.prompt(select)
 
     for eng, rus in actions_dict.items():
         if rus == answers["action"]:
             globals()["iface_" + eng]()
 
+    check_avail_actions()
 
-def iface_buy(): print("iface_buy")
-def iface_sell(): print("iface_sell")
+
+def iface_buy():
+    print("Что купить?")
+    avail_buy = []
+    deny_buy = []
+    for obj in get_all():
+        if cash >= obj.price * 1.5:
+            if cash // (obj.price * 1.5) < obj.container["current"] - obj.barrels:
+                dostupno =  int(cash // (obj.price * 1.5))
+            else:
+                dostupno = obj.container["current"] - obj.barrels
+            avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, obj.price * 1.5 ,obj.barrels ,obj.container["current"] , dostupno))
+        else:
+            deny_buy.append("{} для покупки недоступно. Недостаточчно денег".format(obj.name))
+
+    #for stroka in deny_buy:
+    #    print(stroka)
+
+    select = [
+      inquirer.List('action',
+                    message="Выберите действие",
+                    choices=avail_buy,
+                ),
+    ]
+    answers = inquirer.prompt(select)
+
+    for obj in get_all():
+        if obj.name == answers["action"].partition("\t")[0]:
+            what = obj
+
+    if cash // (what.price * 1.5) < what.container["current"] - what.barrels:
+        dostupno = int(cash // (what.price * 1.5))
+    else:
+        dostupno = what.container["current"] - what.barrels
+
+    def howmuch():
+        how_much = int(input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno)))
+        if how_much > dostupno:
+            print("Доступно всего {}".format(dostupno))
+            howmuch()
+        else:
+            what.buy(how_much)
+
+    howmuch()
+
+def iface_exit():
+    print("Пока!")
+    save()
+    exit()
+
+def iface_sell():
+    print("Что продать?")
+    avail_sell = []
+    deny_sell = []
+    for obj in get_all():
+        if obj.barrels:
+            avail_sell.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}".format(obj.name, obj.price, obj.barrels ,obj.container["current"]))
+        else:
+            deny_sell.append("{} Отсутствует в хранилищах".format(obj.name))
+
+    #for stroka in deny_sell:
+    #    print(stroka)
+
+    select = [
+        inquirer.List('action',
+                      message="Выберите действие",
+                      choices=avail_sell,
+                      ),
+    ]
+    answers = inquirer.prompt(select)
+
+    for obj in get_all():
+        if obj.name == answers["action"].partition("\t")[0]:
+            what = obj
+
+    def howmuch():
+        how_much = int(input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels)))
+        if how_much > what.barrels:
+            print("Доступно всего {}".format(what.barrels))
+            howmuch()
+        else:
+            what.sell(how_much)
+
+    howmuch()
+
 def iface_add_power(): print("iface_add_power")
 def iface_add_container(): print("iface_add_container")
 def iface_mix_mazut(): print("iface_mix_mazut")
@@ -176,6 +284,8 @@ def save():
             class_ = globals()[object].__class__.__name__
             value_ = globals()[object].__dict__
             all_data[object] = {"class": class_, "value": value_}
+    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    all_data["date"]=str(format(timestamp))
 
     with open(nick + "_save.json", "w", encoding="utf-8") as savefile:
         savefile.write(json.dumps(all_data, ensure_ascii=False))
@@ -185,7 +295,7 @@ def load():
     with open(nick +"_save.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
 
-    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "date"):
         globals()[object] = all_data[object]
 
     for object in all_data.keys():
@@ -309,7 +419,7 @@ class Liquid:
         else:
             self.barrels -= how_much
             cash += (self.price * how_much)
-            dela_incr()
+            dela_incr(action, how_much)
             self.action_info(action, how_much, True)
 
     def buy(self, how_much: int):
@@ -397,8 +507,11 @@ class PervichkaK(Liquid):
         action = "Крекинг " + self.name
         self.action_exec(how_much, action)
 
-staaaart = 0
+
 #################################################################
+
+staaaart = 0
+
 if __name__ == "__main__":
     print("start")
     #name = input("Введите своё имя\n")
@@ -406,12 +519,18 @@ if __name__ == "__main__":
     nick = "igor"
 
     if isfile(nick + "_save.json"):
+        with open(nick + "_save.json", "r", encoding="utf-8") as savefile:
+            all_data = json.loads(savefile.read())
+        print("Игра загружена c " + str(all_data["date"]))
         start(nick)
         load()
     else:
         start(nick)
+
     info_all()
     check_avail_actions()
+    info_all()
+    next_day()
     exit()
 
     info_all()
