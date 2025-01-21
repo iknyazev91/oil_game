@@ -3,6 +3,7 @@ import json
 import sys
 import time
 import inquirer
+import re
 from os.path import isfile
 
 
@@ -160,12 +161,14 @@ def iface_buy():
                 dostupno =  int(cash // (obj.price * 1.5))
             else:
                 dostupno = obj.container["current"] - obj.barrels
-            avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, obj.price * 1.5 ,obj.barrels ,obj.container["current"] , dostupno))
+            avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, int(obj.price * 1.5) ,obj.barrels ,obj.container["current"] , dostupno))
         else:
             deny_buy.append("{} для покупки недоступно. Недостаточчно денег".format(obj.name))
 
     #for stroka in deny_buy:
     #    print(stroka)
+
+    avail_buy.append("Отмена")
 
     select = [
       inquirer.List('action',
@@ -174,6 +177,10 @@ def iface_buy():
                 ),
     ]
     answers = inquirer.prompt(select)
+
+    if answers["action"] == "Отмена":
+        clear()
+        return
 
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
@@ -185,17 +192,33 @@ def iface_buy():
         dostupno = what.container["current"] - what.barrels
 
     def howmuch():
-        how_much = int(input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno)))
-        if how_much > dostupno:
+        how_much = input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno))
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > dostupno:
             print("Доступно всего {}".format(dostupno))
             howmuch()
         else:
             clear()
-            what.buy(how_much)
+            print("Покупка {} баррелей {} за ${}".format(how_much, what.name, int(what.price * int(how_much) * 1.5)))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
+            if (apply["action"]) == "Подтвердить":
+                clear()
+                what.buy(int(how_much))
+            else:
+                clear()
+                return
 
     clear()
     howmuch()
-
 
 
 def iface_sell():
@@ -211,6 +234,8 @@ def iface_sell():
     #for stroka in deny_sell:
     #    print(stroka)
 
+    avail_sell.append("Отмена")
+
     select = [
         inquirer.List('action',
                       message="Что продать?",
@@ -219,18 +244,39 @@ def iface_sell():
     ]
     answers = inquirer.prompt(select)
 
+    if answers["action"] == "Отмена":
+        clear()
+        return
+
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
             what = obj
 
     def howmuch():
-        how_much = int(input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels)))
-        if how_much > what.barrels:
+        how_much = input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels))
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > what.barrels:
             print("Доступно всего {}".format(what.barrels))
             howmuch()
         else:
             clear()
-            what.sell(how_much)
+            print("Продажа {} баррелей {} за ${}".format(how_much, what.name, what.price * int(how_much)))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
+            if (apply["action"]) == "Подтвердить":
+                clear()
+                what.sell(int(how_much))
+            else:
+                clear()
+                return
 
     clear()
     howmuch()
@@ -250,6 +296,8 @@ def iface_peregonka():
         else:
             deny_pere.append("{} Отсутствует в хранилищах".format(obj.name))
 
+    avail_pere.append("Отмена")
+
     select = [
         inquirer.List('action',
                       message="Что перегнать?",
@@ -262,25 +310,48 @@ def iface_peregonka():
         if obj.name == answers["action"].partition("\t")[0]:
             what = obj
 
-    clear()
+    if answers["action"] == "Отмена":
+        clear()
+        return
 
     def howmuch():
 
-        how_much = int(input("Сколько {} из {} желаете перегнать?\n".format(what.name, avail)))
-        if how_much > what.barrels:
+        how_much = input("Сколько {} из {} желаете перегнать?\n".format(what.name, avail))
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > what.barrels:
+            clear()
             print("Доступно всего {}".format(what.barrels))
             howmuch()
-        elif how_much > power["current"]:
+        elif int(how_much) > power["current"]:
             print("Недостаточно мощности для выполнения операции. Доступно {}, а требуется {}".format(power["current"], how_much))
             return
         else:
             for key, value  in what.dist_params.items():
                 ing = globals()[key]
-                if ing.barrels + (how_much * value) > ing.container["current"]:
-                    print("Невозможно перегнать {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format( how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * how_much)))
+                if ing.barrels + (int(how_much) * value) > ing.container["current"]:
+                    print("Невозможно перегнать {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format( how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
                     return
+
         clear()
-        what.peregonka(how_much)
+        print("Перегонка {} баррелей {}\nВ процессе будет получено:".format(how_much, what.name))
+        for key, val in what.dist_params.items():
+            print("{} беррелей {}".format(globals()[key].name, int(val * int(how_much))))
+        yesno = [
+            inquirer.List('action',
+                          message="Всё верно?",
+                          choices=["Подтвердить", "Отмена"]
+                          ),
+        ]
+        apply = inquirer.prompt(yesno)
+        if (apply["action"]) == "Подтвердить":
+            clear()
+            what.peregonka(int(how_much))
+        else:
+            clear()
+            return
 
     clear()
     howmuch()
@@ -297,13 +368,31 @@ def iface_add_power():
     clear()
     avail = int(cash // power_price)
     def howmuch():
-        how_much = int(input("Стоимость за кВт - ${}\nДенег хватит на увеличение {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(power_price, avail)))
-        if how_much > avail:
+        how_much = input("Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(power_price, avail))
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > avail:
+            clear()
             print("Доступно всего {}".format(avail))
             howmuch()
         else:
             clear()
-            add_power(how_much)
+            print("Увеличение мощности на {} кВт за ${}".format(how_much, power_price * int(how_much)))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
+            if (apply["action"]) == "Подтвердить":
+                clear()
+                add_power(int(how_much))
+            else:
+                clear()
+                return
 
     howmuch()
 
@@ -317,6 +406,8 @@ def iface_add_container():
             avail_add.append(
                 "{}\tХранится:\t{}/{}".format(obj.name, obj.barrels, obj.container["current"]))
 
+    avail_add.append("Отмена")
+
     select = [
         inquirer.List('action',
                       message="Какое хранилище расширить?",
@@ -325,6 +416,10 @@ def iface_add_container():
     ]
 
     answers = inquirer.prompt(select)
+
+    if answers["action"] == "Отмена":
+        clear()
+        return
 
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
@@ -335,12 +430,33 @@ def iface_add_container():
     def howmuch():
         print("Доступно/Запланировано {}:\t{}/{}".format(what.name, what.barrels, what.container["base"]))
         print("Можно расширить хранилище {} на {} * 100 баррелей".format(what.name, avail))
-        how_much = int(input("На сколько расширить хранилище\n"))
-        if how_much > avail:
+        how_much = input("На сколько расширить хранилище\n")
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > avail:
+            clear()
             howmuch()
         else:
             clear()
-            what.add_container(how_much)
+            print("Расширение хранилища {} на {} баррелей за ${}".format( what.name, 100 * int(how_much), barrels_price * int(how_much)))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
+            if (apply["action"]) == "Подтвердить":
+                clear()
+                what.add_container(int(how_much))
+            else:
+                clear()
+                return
+
+
+
 
     clear()
     howmuch()
