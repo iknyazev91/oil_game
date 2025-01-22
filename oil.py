@@ -3,9 +3,9 @@ import json
 import sys
 import time
 import inquirer
-import re
+import signal
+import sys
 from os.path import isfile
-
 
 def clear():
     print("\033[H\033[J", end="")
@@ -95,7 +95,7 @@ def check_avail_actions():
     else:
         deny_actions.append("reforming")
 
-    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut:
+    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut and top_mazut.container["current"] - top_mazut.barrels >= 20:
         avail_actions.append("mix_mazut")
     else:
         deny_actions.append("mix_mazut")
@@ -129,7 +129,11 @@ def check_avail_actions():
                     choices=actions,
                 ),
     ]
+
     answers = inquirer.prompt(select)
+
+    if not answers:
+        exit()
 
     for eng, rus in actions_dict.items():
         if rus == answers["action"]:
@@ -177,8 +181,9 @@ def iface_buy():
                 ),
     ]
     answers = inquirer.prompt(select)
-
-    if answers["action"] == "Отмена":
+    if not answers:
+        exit()
+    elif answers["action"] == "Отмена":
         clear()
         return
 
@@ -210,7 +215,10 @@ def iface_buy():
                               ),
             ]
             apply = inquirer.prompt(yesno)
-            if (apply["action"]) == "Подтвердить":
+
+            if not apply:
+                exit()
+            elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.buy(int(how_much))
             else:
@@ -244,7 +252,9 @@ def iface_sell():
     ]
     answers = inquirer.prompt(select)
 
-    if answers["action"] == "Отмена":
+    if not answers:
+        exit()
+    elif answers["action"] == "Отмена":
         clear()
         return
 
@@ -271,7 +281,9 @@ def iface_sell():
                               ),
             ]
             apply = inquirer.prompt(yesno)
-            if (apply["action"]) == "Подтвердить":
+            if not apply:
+                exit()
+            elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.sell(int(how_much))
             else:
@@ -305,6 +317,8 @@ def iface_peregonka():
                       ),
     ]
     answers = inquirer.prompt(select)
+    if not answers:
+        exit()
 
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
@@ -338,7 +352,7 @@ def iface_peregonka():
         clear()
         print("Перегонка {} баррелей {}\nВ процессе будет получено:".format(how_much, what.name))
         for key, val in what.dist_params.items():
-            print("{} беррелей {}".format(globals()[key].name, int(val * int(how_much))))
+            print("{}\t{} беррелей ".format(globals()[key].name, int(val * int(how_much))))
         yesno = [
             inquirer.List('action',
                           message="Всё верно?",
@@ -455,14 +469,55 @@ def iface_add_container():
                 clear()
                 return
 
-
-
-
     clear()
     howmuch()
 
 
-def iface_mix_mazut(): print("iface_mix_mazut")
+def iface_mix_mazut():
+    clear()
+    print("Изготовление мазута производится путём смешивания ингридиентов в следующих пропорциях:")
+    ings = []
+    coef = 0
+    limit = 100
+    for ing in get_all():
+        if ing.for_mazut != 0:
+            ings.append(ing)
+            print("{} частей {}. \tИмеется {} баррелей".format(ing.for_mazut, ing.name, ing.barrels))
+            coef += ing.for_mazut
+            if ing.barrels // ing.for_mazut < limit:
+                limit = ing.barrels // ing.for_mazut
+
+    print("1 объём смешивания принесёт {} баррелей топливного мазута".format(coef))
+
+    def howmuch():
+        how_much = input("Сколько * {} объёмов из возможных {} смешать?\n".format(coef, limit))
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое число")
+            howmuch()
+        elif int(how_much) > limit:
+            clear()
+            print("Возможно смешать только {} объёмов".format(limit))
+            howmuch()
+        else:
+            print("Операция смешивания {} объёмов. Будет получено {} баррелей топливного мазута".format(int(how_much), int(how_much) * coef))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
+            if (apply["action"]) == "Подтвердить":
+                clear()
+                mix_mazut(int(how_much))
+            else:
+                clear()
+                return
+
+    howmuch()
+
+
 
 def iface_mix_a84():
     ings = []
@@ -625,7 +680,7 @@ def mix_mazut(how_much: int):
             quantity += ing.for_mazut
         top_mazut.barrels += how_much * quantity
         dela_incr(action, how_much * quantity)
-        print("Операция смешивания {} баррелей топливного мазута выполнена".format(how_much * quantity))
+        print("Операция смешивания {} * {} баррелей топливного мазута выполнена".format(how_much, how_much * quantity))
 
 def mix(action, ingridients, limit, product):
     full_octan = int(0)
@@ -819,6 +874,6 @@ if __name__ == "__main__":
 
     check_avail_actions()
 
-    exit()
+    iface_exit()
 
 
