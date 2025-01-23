@@ -1,9 +1,7 @@
 import gc
 import json
-import sys
 import time
 import inquirer
-import signal
 import sys
 from os.path import isfile
 
@@ -32,7 +30,7 @@ def check_avail_actions():
         buy="Покупка недоступна - недостаточно денег",
         sell="Продажа недоступна - нечего продавать",
         add_power="Увеличение мощности недоступно - недостаточно денег",
-        add_container="Расширить хранилища невозможно - недостаточно денег",
+        add_container="Расширить хранилище невозможно - недостаточно денег",
         peregonka="Перегонка нефти невозможна. Нет нефти",
         kreking="Крекинг невозможен. Недостаточно ингридиентов",
         reforming="Реформинг невозможен. Недостаточно ингридиентов",
@@ -160,11 +158,12 @@ def iface_buy():
     avail_buy = []
     deny_buy = []
     for obj in get_all():
-        if cash >= obj.price * 1.5:
+        if cash >= obj.price * 1.5 and obj.barrels < obj.container["current"] :
             if cash // (obj.price * 1.5) < obj.container["current"] - obj.barrels:
                 dostupno =  int(cash // (obj.price * 1.5))
             else:
                 dostupno = obj.container["current"] - obj.barrels
+
             avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, int(obj.price * 1.5) ,obj.barrels ,obj.container["current"] , dostupno))
         else:
             deny_buy.append("{} для покупки недоступно. Недостаточчно денег".format(obj.name))
@@ -197,12 +196,16 @@ def iface_buy():
         dostupno = what.container["current"] - what.barrels
 
     def howmuch():
-        how_much = input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno))
+        try:
+            how_much = input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno))
+        except:
+            iface_exit()
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
             howmuch()
         elif int(how_much) > dostupno:
+            clear()
             print("Доступно всего {}".format(dostupno))
             howmuch()
         else:
@@ -263,7 +266,11 @@ def iface_sell():
             what = obj
 
     def howmuch():
-        how_much = input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels))
+        try:
+            how_much = input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels))
+        except:
+            iface_exit()
+
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
@@ -293,18 +300,18 @@ def iface_sell():
     clear()
     howmuch()
 
-def iface_peregonka():
+def templ_peregonka(action = "Nothing", class_= "Null"):
     clear()
     avail_pere = []
     deny_pere = []
 
     for obj in get_all():
-        if isinstance(obj, Oil):
+        if isinstance(obj, class_) and obj.barrels > 0:
             if obj.barrels < power["current"]:
                 avail = obj.barrels
             else:
                 avail = power["current"]
-            avail_pere.append("{}\tДоступно для перегонки:\t{}".format(obj.name, avail))
+            avail_pere.append("{}\tДоступно для {}:\t{}".format(obj.name, action, avail))
         else:
             deny_pere.append("{} Отсутствует в хранилищах".format(obj.name))
 
@@ -323,14 +330,20 @@ def iface_peregonka():
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
             what = obj
+            if what.barrels < power["current"]:
+                avail = what.barrels
+            else:
+                avail = power["current"]
 
     if answers["action"] == "Отмена":
         clear()
         return
 
     def howmuch():
-
-        how_much = input("Сколько {} из {} желаете перегнать?\n".format(what.name, avail))
+        try:
+            how_much = input("Сколько {} из {} желаете {}?\n".format(what.name, avail, action))
+        except:
+            iface_exit()
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
@@ -346,11 +359,11 @@ def iface_peregonka():
             for key, value  in what.dist_params.items():
                 ing = globals()[key]
                 if ing.barrels + (int(how_much) * value) > ing.container["current"]:
-                    print("Невозможно перегнать {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format( how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
+                    print("Невозможно {} {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format(action, how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
                     return
 
         clear()
-        print("Перегонка {} баррелей {}\nВ процессе будет получено:".format(how_much, what.name))
+        print("{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
         for key, val in what.dist_params.items():
             print("{}\t{} беррелей ".format(globals()[key].name, int(val * int(how_much))))
         yesno = [
@@ -360,7 +373,9 @@ def iface_peregonka():
                           ),
         ]
         apply = inquirer.prompt(yesno)
-        if (apply["action"]) == "Подтвердить":
+        if not apply:
+            exit()
+        elif (apply["action"]) == "Подтвердить":
             clear()
             what.peregonka(int(how_much))
         else:
@@ -370,19 +385,28 @@ def iface_peregonka():
     clear()
     howmuch()
 
+def iface_peregonka():
+    clear()
+    templ_peregonka("перегнать", Oil)
+
 def iface_kreking():
     clear()
-    print("iface_kreking")
+    templ_peregonka("крекировать", PervichkaK)
 
 def iface_reforming():
     clear()
-    print("iface_reforming")
+    templ_peregonka("риформинг", PervichkaR)
 
 def iface_add_power():
     clear()
     avail = int(cash // power_price)
     def howmuch():
-        how_much = input("Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(power_price, avail))
+        try:
+            how_much = input(
+                "Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(
+                    power_price, avail))
+        except:
+            iface_exit()
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
@@ -401,7 +425,9 @@ def iface_add_power():
                               ),
             ]
             apply = inquirer.prompt(yesno)
-            if (apply["action"]) == "Подтвердить":
+            if not apply:
+                exit()
+            elif (apply["action"]) == "Подтвердить":
                 clear()
                 add_power(int(how_much))
             else:
@@ -430,8 +456,9 @@ def iface_add_container():
     ]
 
     answers = inquirer.prompt(select)
-
-    if answers["action"] == "Отмена":
+    if not answers:
+        exit()
+    elif answers["action"] == "Отмена":
         clear()
         return
 
@@ -444,7 +471,10 @@ def iface_add_container():
     def howmuch():
         print("Доступно/Запланировано {}:\t{}/{}".format(what.name, what.barrels, what.container["base"]))
         print("Можно расширить хранилище {} на {} * 100 баррелей".format(what.name, avail))
-        how_much = input("На сколько расширить хранилище\n")
+        try:
+            how_much = input("На сколько расширить хранилище\n")
+        except:
+            iface_exit()
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
@@ -462,7 +492,9 @@ def iface_add_container():
                               ),
             ]
             apply = inquirer.prompt(yesno)
-            if (apply["action"]) == "Подтвердить":
+            if not apply:
+                exit()
+            elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.add_container(int(how_much))
             else:
@@ -490,7 +522,10 @@ def iface_mix_mazut():
     print("1 объём смешивания принесёт {} баррелей топливного мазута".format(coef))
 
     def howmuch():
-        how_much = input("Сколько * {} объёмов из возможных {} смешать?\n".format(coef, limit))
+        try:
+            how_much = input("Сколько * {} объёмов из возможных {} смешать?\n".format(coef, limit))
+        except:
+            iface_exit()
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
@@ -508,7 +543,9 @@ def iface_mix_mazut():
                               ),
             ]
             apply = inquirer.prompt(yesno)
-            if (apply["action"]) == "Подтвердить":
+            if not apply:
+                exit()
+            elif (apply["action"]) == "Подтвердить":
                 clear()
                 mix_mazut(int(how_much))
             else:
@@ -530,9 +567,8 @@ def iface_mix_a84():
 
 
 def iface_mix_a94(): print("iface_mix_a94")
+
 def iface_mix_aviatop(): print("iface_mix_aviatop")
-
-
 
 def dela_incr(action, how_much):
     global dela_count
@@ -763,7 +799,7 @@ class Liquid:
             print("Недостаточно {}. Вы имеете баррелей {} , но  желаете продать {}".format(self.name, self.barrels, how_much))
         else:
             self.barrels -= how_much
-            cash += (self.price * how_much)
+            cash += int((self.price * how_much))
             dela_incr(action, how_much)
             self.action_info(action, how_much, True)
 
@@ -780,7 +816,7 @@ class Liquid:
             return
         else:
             self.barrels += how_much
-            cash -= ((self.price * 1.5) * how_much)
+            cash -= int(((self.price * 1.5) * how_much))
             dela_incr(action, how_much)
             self.action_info(action, how_much, True)
 
@@ -820,7 +856,7 @@ class Liquid:
             self.action_info(action, (how_much * 100), False)
         else:
             self.container["base"] += (how_much * barrels_price)
-            cash -= (how_much * barrels_price)
+            cash -= int(how_much * barrels_price)
             dela_incr(action, how_much)
             print("Операция {} {} на {} баррелей запланирована на завтра".format(action, self.name, how_much * 100))
 
@@ -842,13 +878,12 @@ class Oil(Liquid):
 
 
 class PervichkaR(Liquid):
-    def reforming(self, how_much):
+    def peregonka(self, how_much):
         action = "Реформинг " + self.name
         self.action_exec(how_much, action)
 
-
 class PervichkaK(Liquid):
-    def kreking(self, how_much):
+    def peregonka(self, how_much):
         action = "Крекинг " + self.name
         self.action_exec(how_much, action)
 
@@ -859,7 +894,11 @@ staaaart = 0
 
 if __name__ == "__main__":
     print("\033[H\033[J", end="")
-    #name = input("Введите своё имя\n")
+    #try:
+    #    name = input("Введите своё имя\n")
+    #except:
+    #    iface_exit()
+    #
 
     nick = "igor"
 
