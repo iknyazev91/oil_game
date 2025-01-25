@@ -67,33 +67,53 @@ def check_avail_actions():
         deny_actions.append("add_container")
 
     oil_barrels = 0
+    oil_can_dist = True
     for obj in get_all():
         if isinstance(obj, Oil):
             oil_barrels += obj.barrels
-    if oil_barrels > 0 and power["current"] > 0:
+            for out_name, val in obj.dist_params.items():
+                out = globals()[out_name]
+                if (out.container["current"] - out.barrels) < val:
+                    oil_can_dist = False
+    if oil_barrels > 0 and power["current"] > 0 and oil_can_dist:
         avail_actions.append("peregonka")
     else:
         deny_actions.append("peregonka")
 
     kr_barrels = 0
+    kr_can_dist = True
     for obj in get_all():
         if isinstance(obj, PervichkaK):
             kr_barrels += obj.barrels
-    if kr_barrels > 0 and power["current"] > 0:
+            for out_name, val in obj.dist_params.items():
+                out = globals()[out_name]
+                if (out.container["current"] - out.barrels) < val:
+                    kr_can_dist = False
+    if kr_barrels > 0 and power["current"] > 0 and kr_can_dist:
         avail_actions.append("kreking")
     else:
         deny_actions.append("kreking")
 
     r_barrels = 0
+    r_can_dist = True
     for obj in get_all():
         if isinstance(obj, PervichkaR):
             r_barrels += obj.barrels
-    if r_barrels > 0 and power["current"] > 0:
+            for out_name, val in obj.dist_params.items():
+                out = globals()[out_name]
+                if (out.container["current"] - out.barrels) < val:
+                    r_can_dist = False
+    if r_barrels > 0 and power["current"] > 0 and r_can_dist:
         avail_actions.append("reforming")
     else:
         deny_actions.append("reforming")
 
-    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut and top_mazut.container["current"] - top_mazut.barrels >= 20:
+
+    maz_coef = 0
+    for ing in get_all():
+        if ing.for_mazut != 0:
+            maz_coef += ing.for_mazut
+    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut and top_mazut.container["current"] - top_mazut.barrels >= maz_coef:
         avail_actions.append("mix_mazut")
     else:
         deny_actions.append("mix_mazut")
@@ -131,7 +151,7 @@ def check_avail_actions():
     answers = inquirer.prompt(select)
 
     if not answers:
-        exit()
+        iface_exit()
 
     for eng, rus in actions_dict.items():
         if rus == answers["action"]:
@@ -181,7 +201,8 @@ def iface_buy():
     ]
     answers = inquirer.prompt(select)
     if not answers:
-        exit()
+        clear()
+        return
     elif answers["action"] == "Отмена":
         clear()
         return
@@ -199,10 +220,15 @@ def iface_buy():
         try:
             how_much = input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno))
         except:
-            iface_exit()
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
+            howmuch()
+        elif int(how_much) <= 0 :
+            clear()
+            print("Введите простое ненулевое число")
             howmuch()
         elif int(how_much) > dostupno:
             clear()
@@ -220,7 +246,8 @@ def iface_buy():
             apply = inquirer.prompt(yesno)
 
             if not apply:
-                exit()
+                clear()
+                return
             elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.buy(int(how_much))
@@ -256,7 +283,8 @@ def iface_sell():
     answers = inquirer.prompt(select)
 
     if not answers:
-        exit()
+        clear()
+        return
     elif answers["action"] == "Отмена":
         clear()
         return
@@ -269,11 +297,15 @@ def iface_sell():
         try:
             how_much = input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels))
         except:
-            iface_exit()
-
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
-            print("Введите простое число")
+            print("Введите простое положительное число")
+            howmuch()
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > what.barrels:
             print("Доступно всего {}".format(what.barrels))
@@ -289,7 +321,8 @@ def iface_sell():
             ]
             apply = inquirer.prompt(yesno)
             if not apply:
-                exit()
+                clear()
+                return
             elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.sell(int(how_much))
@@ -311,6 +344,10 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                 avail = obj.barrels
             else:
                 avail = power["current"]
+            for out_name, val in obj.dist_params.items():
+                out = globals()[out_name]
+                if (out.container["current"] - out.barrels) / val < avail:
+                    avail = int((out.container["current"] - out.barrels) / val)
             avail_pere.append("{}\tДоступно для {}:\t{}".format(obj.name, action, avail))
         else:
             deny_pere.append("{} Отсутствует в хранилищах".format(obj.name))
@@ -319,13 +356,14 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
 
     select = [
         inquirer.List('action',
-                      message="Что перегнать?",
+                      message="Что {}?".format(action),
                       choices=avail_pere,
                       ),
     ]
     answers = inquirer.prompt(select)
     if not answers:
-        exit()
+        clear()
+        return
 
     for obj in get_all():
         if obj.name == answers["action"].partition("\t")[0]:
@@ -334,6 +372,10 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                 avail = what.barrels
             else:
                 avail = power["current"]
+            for out_name, val in obj.dist_params.items():
+                out = globals()[out_name]
+                if (out.container["current"] - out.barrels) / val < avail:
+                    avail = int((out.container["current"] - out.barrels) / val)
 
     if answers["action"] == "Отмена":
         clear()
@@ -343,14 +385,19 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
         try:
             how_much = input("Сколько {} из {} желаете {}?\n".format(what.name, avail, action))
         except:
-            iface_exit()
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
             print("Введите простое число")
             howmuch()
-        elif int(how_much) > what.barrels:
+        elif int(how_much) <= 0:
             clear()
-            print("Доступно всего {}".format(what.barrels))
+            print("Введите простое ненулевое число")
+            howmuch()
+        elif int(how_much) > avail:
+            clear()
+            print("Доступно всего {}".format(avail))
             howmuch()
         elif int(how_much) > power["current"]:
             print("Недостаточно мощности для выполнения операции. Доступно {}, а требуется {}".format(power["current"], how_much))
@@ -362,10 +409,10 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                     print("Невозможно {} {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format(action, how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
                     return
 
-        clear()
+        #clear()
         print("{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
         for key, val in what.dist_params.items():
-            print("{}\t{} беррелей ".format(globals()[key].name, int(val * int(how_much))))
+            print("{}\t{} бареллей".format(globals()[key].name, int(val * int(how_much))))
         yesno = [
             inquirer.List('action',
                           message="Всё верно?",
@@ -374,7 +421,8 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
         ]
         apply = inquirer.prompt(yesno)
         if not apply:
-            exit()
+            clear()
+            return
         elif (apply["action"]) == "Подтвердить":
             clear()
             what.peregonka(int(how_much))
@@ -406,10 +454,15 @@ def iface_add_power():
                 "Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(
                     power_price, avail))
         except:
-            iface_exit()
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
-            print("Введите простое число")
+            print("Введите простое положительное число")
+            howmuch()
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > avail:
             clear()
@@ -426,7 +479,8 @@ def iface_add_power():
             ]
             apply = inquirer.prompt(yesno)
             if not apply:
-                exit()
+                clear()
+                return
             elif (apply["action"]) == "Подтвердить":
                 clear()
                 add_power(int(how_much))
@@ -457,7 +511,8 @@ def iface_add_container():
 
     answers = inquirer.prompt(select)
     if not answers:
-        exit()
+        clear()
+        return
     elif answers["action"] == "Отмена":
         clear()
         return
@@ -474,10 +529,15 @@ def iface_add_container():
         try:
             how_much = input("На сколько расширить хранилище\n")
         except:
-            iface_exit()
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
-            print("Введите простое число")
+            print("Введите простое положительное число")
+            howmuch()
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > avail:
             clear()
@@ -493,7 +553,8 @@ def iface_add_container():
             ]
             apply = inquirer.prompt(yesno)
             if not apply:
-                exit()
+                clear()
+                return
             elif (apply["action"]) == "Подтвердить":
                 clear()
                 what.add_container(int(how_much))
@@ -518,6 +579,8 @@ def iface_mix_mazut():
             coef += ing.for_mazut
             if ing.barrels // ing.for_mazut < limit:
                 limit = ing.barrels // ing.for_mazut
+            if ((top_mazut.container["current"] - top_mazut.barrels) // coef) < limit:
+                limit = ((top_mazut.container["current"] - top_mazut.barrels) // coef)
 
     print("1 объём смешивания принесёт {} баррелей топливного мазута".format(coef))
 
@@ -525,10 +588,15 @@ def iface_mix_mazut():
         try:
             how_much = input("Сколько * {} объёмов из возможных {} смешать?\n".format(coef, limit))
         except:
-            iface_exit()
+            clear()
+            return
         if not how_much.isnumeric():
             clear()
-            print("Введите простое число")
+            print("Введите простое положительное число")
+            howmuch()
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > limit:
             clear()
@@ -544,7 +612,8 @@ def iface_mix_mazut():
             ]
             apply = inquirer.prompt(yesno)
             if not apply:
-                exit()
+                clear()
+                return
             elif (apply["action"]) == "Подтвердить":
                 clear()
                 mix_mazut(int(how_much))
@@ -554,21 +623,297 @@ def iface_mix_mazut():
 
     howmuch()
 
+def iface_mix_aviatop():
+    smes = {}
+    clear()
 
+    def select_ing():
+        start_ings = []
+        clear()
+        if smes:
+            show_smes()
+        else:
+            print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучсть смеси должна быть < 1")
+        for ing in get_all():
+            if ing.letuchest != 0 and ing.barrels != 0:
+                if ing in smes and ing.barrels - smes[ing] <= 0:
+                    pass
+                elif ing in smes and ing.barrels - smes[ing] > 0:
+                    start_ings.append(
+                        "{}\tЛетучесть = {}\tВ наличии {}".format(ing.name, ing.letuchest, ing.barrels - smes[ing]))
+                else:
+                    start_ings.append(
+                        "{}\tЛетучесть = {}\tВ наличии {}".format(ing.name, ing.letuchest, ing.barrels))
+
+        start_ings.append("Отмена")
+
+        select = [
+          inquirer.List('action',
+                        message="Выберите ингридиент",
+                        choices=start_ings,
+                    ),
+        ]
+
+        answers = inquirer.prompt(select)
+        if not answers:
+            clear()
+            return
+        elif answers["action"] == "Отмена":
+            clear()
+            return
+        for obj in get_all():
+            if obj.name == answers["action"].partition("\t")[0]:
+                howmuch(obj)
+
+    def howmuch(what):
+        clear()
+        if what in smes:
+            limit = what.barrels - smes[what]
+        else:
+            limit = what.barrels
+        try:
+            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
+        except:
+            clear()
+            return
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое положительное число")
+            howmuch(what)
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
+            howmuch(what)
+        elif int(how_much) > what.barrels:
+            clear()
+            print("Возможно добавить только {} баррелей".format(limit))
+            howmuch(what)
+        else:
+            print(smes)
+            if what in smes:
+                smes[what] += int(how_much)
+            else:
+                smes[what] = int(how_much)
+            clear()
+            print("В смесь добавлено {} бaррелей {}".format(int(how_much), what.name))
+            check_smes()
+
+    def show_smes():
+        print("Ингридиенты смеси:")
+        smes_vol = 0
+        smes_let = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_let += key.letuchest * val
+            print("{} {} баррелей".format(key.name, val))
+        if smes_let / smes_vol == 1:
+            print("Объём смеси - {} Летучесть смеси - {} идеальная".format(smes_vol, round(smes_let / smes_vol, 4)))
+        elif smes_let / smes_vol > 1:
+            print("Объём смеси - {} Летучесть смеси - {} черезмерная".format(smes_vol, round(smes_let / smes_vol, 4)))
+            print("Необходимо добавить ингридиенты")
+            print("Для получения нужной летучести смеси можно добавить:")
+            for obj in get_all():
+                if obj.letuchest < 1 and obj.letuchest != 0 and obj.barrels > 0:
+                    dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                    print("{} {}".format(round(dobavk, 4), obj.name))
+        else:
+            print("Объём смеси - {} Летучесть смеси - {} в допустимых пределах".format(smes_vol, round(smes_let / smes_vol, 4)))
+            print("Для увеличения объёмов можно добавить:")
+            for obj in get_all():
+
+                if obj.letuchest > 1 and obj.barrels > 0:
+                    dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                    print("{} {}".format(round(dobavk, 4), obj.name))
+
+    def check_smes():
+        if not smes:
+            select_ing()
+        else:
+            smes_vol = 0
+            smes_let = 0
+            for key, val in smes.items():
+                smes_vol += val
+                smes_let += key.letuchest * val
+            if smes_let / smes_vol > 1:
+                print("Объём смеси - {} Летучесть смеси - {} черезмерна".format(smes_vol, smes_let / smes_vol))
+                print("Необходимо добавить ингридиенты")
+
+                select_ing()
+            else:
+                show_smes()
+                select = [
+                    inquirer.List('action',
+                                  message="Желаете добавить ингридиенты?",
+                                  choices=["Добавить", "Выполнить", "Отменить"],
+                                  ),
+                ]
+
+                answers = inquirer.prompt(select)
+                if not answers:
+                    clear()
+                    return
+                elif answers["action"] == "Отменить":
+                    clear()
+                    return
+                elif answers["action"] == "Добавить":
+                    select_ing()
+                else:
+                    clear()
+                    mix_aviatop(smes)
+                    #mix_a84(smes)
+    check_smes()
+    return
 
 def iface_mix_a84():
-    ings = []
-    for ing in get_all():
-        if ing.octan != 0:
-            if ing.barrels != 0:
-                ings.append(ing)
-    for ing in ings:
-        print(ing.name)
+    iface_mix(84)
 
+def iface_mix_a94():
+    iface_mix(94)
 
-def iface_mix_a94(): print("iface_mix_a94")
+def iface_mix(need):
+    smes = {}
+    clear()
 
-def iface_mix_aviatop(): print("iface_mix_aviatop")
+    def select_ing():
+        start_ings = []
+        clear()
+        if smes:
+            show_smes()
+        else:
+            print("Операция получения бензина А" + str(
+                need) + " производится путём смешивания октановых ингридиентов.\nОктановое число смеси должно быть > или = " + str(
+                need))
+        for ing in get_all():
+            if ing.octan != 0 and ing.barrels != 0:
+                if ing in smes and ing.barrels - smes[ing] <= 0:
+                    pass
+                elif ing in smes and ing.barrels - smes[ing] > 0:
+                    start_ings.append(
+                        "{}\tОктан. число = {}\tВ наличии {}".format(ing.name, ing.octan, ing.barrels - smes[ing]))
+                else:
+                    start_ings.append(
+                        "{}\tОктан. число = {}\tВ наличии {}".format(ing.name, ing.octan, ing.barrels))
+
+        start_ings.append("Отмена")
+
+        select = [
+          inquirer.List('action',
+                        message="Выберите ингридиент",
+                        choices=start_ings,
+                    ),
+        ]
+
+        answers = inquirer.prompt(select)
+        if not answers:
+            clear()
+            return
+        elif answers["action"] == "Отмена":
+            clear()
+            return
+        for obj in get_all():
+            if obj.name == answers["action"].partition("\t")[0]:
+                howmuch(obj)
+
+    def howmuch(what):
+        clear()
+        if what in smes:
+            limit = what.barrels - smes[what]
+        else:
+            limit = what.barrels
+        try:
+            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
+        except:
+            clear()
+            return
+        if not how_much.isnumeric():
+            clear()
+            print("Введите простое положительное число")
+            howmuch(what)
+        elif int(how_much) <= 0:
+            clear()
+            print("Введите простое положительное число")
+            howmuch(what)
+        elif int(how_much) > what.barrels:
+            clear()
+            print("Возможно добавить только {} баррелей".format(limit))
+            howmuch(what)
+        else:
+            print(smes)
+            if what in smes:
+                smes[what] += int(how_much)
+            else:
+                smes[what] = int(how_much)
+            clear()
+            print("В смесь добавлено {} бaррелей {}".format(int(how_much), what.name))
+            check_smes()
+
+    def show_smes():
+        print("Ингридиенты смеси:")
+        smes_vol = 0
+        smes_oct = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_oct += key.octan * val
+            print("{} {} баррелей".format(key.name, val))
+        if need == smes_oct // smes_vol:
+            print("Объём смеси - {} Октановое число смеси {} подходящее".format(smes_vol, smes_oct // smes_vol))
+        elif smes_oct // smes_vol < need:
+            print("Объём смеси - {} Октановое число смеси {} недостаточное".format(smes_vol, smes_oct // smes_vol))
+            print("Необходимо добавить ингридиенты")
+            print("Для получения нужного октанового числа смеси можно добавить:")
+            for obj in get_all():
+                if obj.octan > need and obj.barrels > 0:
+                    dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                    if dobavk >= 0:
+                        print("{} {}".format(int(dobavk + 1), obj.name))
+        else:
+            print("Объём смеси - {} Октановое число смеси {} достаточное".format(smes_vol, smes_oct // smes_vol))
+            print("Для получения нужного октанового числа смеси можно добавить:")
+            for obj in get_all():
+                if obj.octan < need and obj.octan > 0 and obj.barrels > 0:
+                    dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                    if dobavk > 1:
+                        print("{} {}".format(int(dobavk), obj.name))
+
+    def check_smes():
+        if not smes:
+            select_ing()
+        else:
+            smes_vol = 0
+            smes_oct = 0
+            for key, val in smes.items():
+                smes_vol += val
+                smes_oct += key.octan * val
+            if smes_oct // smes_vol < need:
+                print("Объём смеси - {} Октановое число смеси {} недостаточно".format(smes_vol, smes_oct // smes_vol))
+                print("Необходимо добавить ингридиенты")
+
+                select_ing()
+            else:
+                show_smes()
+                #print("Объём смеси - {} Октановое число смеси {} достаточно".format(smes_vol, smes_oct // smes_vol))
+                select = [
+                    inquirer.List('action',
+                                  message="Желаете добавить ингридиенты?",
+                                  choices=["Добавить", "Выполнить", "Отменить"],
+                                  ),
+                ]
+
+                answers = inquirer.prompt(select)
+                if not answers:
+                    clear()
+                    return
+                elif answers["action"] == "Отменить":
+                    clear()
+                    return
+                elif answers["action"] == "Добавить":
+                    select_ing()
+                else:
+                    clear()
+                    globals()["mix_a" + str(need)](smes)
+                    #mix_a84(smes)
+    check_smes()
+    return
 
 def dela_incr(action, how_much):
     global dela_count
@@ -722,21 +1067,21 @@ def mix(action, ingridients, limit, product):
     full_octan = int(0)
     quantity = int(0)
 
-    for ing in ingridients:
-        if ing[0].octan == 0:
+    for key, val in ingridients.items():
+        if key.octan == 0:
             print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, ing[0].name))
             return
-        elif ing[0].barrels < ing[1]:
+        elif key.barrels < val:
             print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, ing[0].name, ing[0].barrels, ing[1]))
             return
         else:
-            full_octan += (ing[0].octan * ing[1])
-            quantity += ing[1]
+            full_octan += (key.octan * val)
+            quantity += val
     if (full_octan // quantity) < limit:
         print("Операция смешивания {} не может быть выполнена. Октановое число смеси - {}, меньше {}".format(product.name, full_octan // quantity, limit))
         return
-    for ing in ingridients:
-        ing[0].barrels -= ing[1]
+    for key, val in ingridients.items():
+        key.barrels -= val
     product.barrels += quantity
     dela_incr(action, quantity)
     print("Операция смешивания {} баррелей {} выполнена".format(quantity, product.name))
@@ -754,25 +1099,25 @@ def mix_a94(ingridients):
 
 def mix_aviatop(ingridients):
     product = aviatop
-    full_letuchest = int(0)
+    full_letuchest = 0
     quantity = int(0)
     action = "Смешивание авиатоплива"
 
-    for ing in ingridients:
-        if ing[0].letuchest == 0:
+    for key, val in ingridients.items():
+        if key.letuchest == 0:
             print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, ing[0].name))
             return
-        elif ing[0].barrels < ing[1]:
+        elif key.barrels < val:
             print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, ing[0].name, ing[0].barrels, ing[1]))
             return
         else:
-            full_letuchest += (ing[0].letuchest * ing[1])
-            quantity += ing[1]
+            full_letuchest += (key.letuchest * val)
+            quantity += val
     if (full_letuchest / quantity) > 1:
         print("Операция смешивания {} не может быть выполнена. Летучесть смеси - {}, превышает 1 ".format(product.name, full_letuchest / quantity, ))
         return
-    for ing in ingridients:
-        ing[0].barrels -= ing[1]
+    for key, val in ingridients.items():
+        key.barrels -= val
     product.barrels += quantity
 
     dela_incr(action, quantity)

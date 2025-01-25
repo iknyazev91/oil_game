@@ -225,7 +225,7 @@
     "value": {
       "name": "Бензин-А94",
       "price": 200,
-      "octan": 84,
+      "octan": 94,
       "for_mazut": 0,
       "letuchest": 0.0,
       "dist_params": {},
