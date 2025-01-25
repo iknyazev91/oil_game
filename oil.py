@@ -1,6 +1,8 @@
 import gc
 import json
 import time
+from resource import RLIMIT_AS
+
 import inquirer
 import sys
 from os.path import isfile
@@ -124,7 +126,8 @@ def check_avail_actions():
         deny_actions.append("mix_a84")
 
     if benzin_K.barrels > 0 or benzin_R.barrels > 0:
-        avail_actions.append("mix_a94")
+        if a94.container["current"] - a94.barrels > 0:
+            avail_actions.append("mix_a94")
     else:
         deny_actions.append("mix_a94")
 
@@ -783,16 +786,31 @@ def iface_mix(need):
             print("Операция получения бензина А" + str(
                 need) + " производится путём смешивания октановых ингридиентов.\nОктановое число смеси должно быть > или = " + str(
                 need))
+        if smes:
+            for key, val in smes.items():
+                free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels - val
+        else:
+            free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
         for ing in get_all():
             if ing.octan != 0 and ing.barrels != 0:
                 if ing in smes and ing.barrels - smes[ing] <= 0:
                     pass
+                elif free_container <= 0:
+                    pass
                 elif ing in smes and ing.barrels - smes[ing] > 0:
-                    start_ings.append(
-                        "{}\tОктан. число = {}\tВ наличии {}".format(ing.name, ing.octan, ing.barrels - smes[ing]))
+                    if ing.barrels - smes[ing] > free_container:
+                        start_ings.append(
+                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, free_container))
+                    else:
+                        start_ings.append(
+                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, ing.barrels - smes[ing]))
                 else:
-                    start_ings.append(
-                        "{}\tОктан. число = {}\tВ наличии {}".format(ing.name, ing.octan, ing.barrels))
+                    if ing.barrels > free_container:
+                        start_ings.append(
+                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, free_container))
+                    else:
+                        start_ings.append(
+                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, ing.barrels))
 
         start_ings.append("Отмена")
 
@@ -816,10 +834,21 @@ def iface_mix(need):
 
     def howmuch(what):
         clear()
-        if what in smes:
-            limit = what.barrels - smes[what]
+        if smes:
+            for key, val in smes.items():
+                free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels - val
         else:
-            limit = what.barrels
+            free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
+        if what in smes:
+            if what.barrels - smes[what] > free_container:
+                limit = free_container
+            else:
+                limit = what.barrels - smes[what]
+        else:
+            if what.barrels > free_container:
+                limit = free_container
+            else:
+                limit = what.barrels
         try:
             how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
         except:
@@ -862,7 +891,7 @@ def iface_mix(need):
             print("Необходимо добавить ингридиенты")
             print("Для получения нужного октанового числа смеси можно добавить:")
             for obj in get_all():
-                if obj.octan > need and obj.barrels > 0:
+                if obj.octan > need:
                     dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
                     if dobavk >= 0:
                         print("{} {}".format(int(dobavk + 1), obj.name))
@@ -870,7 +899,7 @@ def iface_mix(need):
             print("Объём смеси - {} Октановое число смеси {} достаточное".format(smes_vol, smes_oct // smes_vol))
             print("Для получения нужного октанового числа смеси можно добавить:")
             for obj in get_all():
-                if obj.octan < need and obj.octan > 0 and obj.barrels > 0:
+                if obj.octan < need and obj.octan > 0:
                     dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
                     if dobavk > 1:
                         print("{} {}".format(int(dobavk), obj.name))
@@ -892,10 +921,20 @@ def iface_mix(need):
             else:
                 show_smes()
                 #print("Объём смеси - {} Октановое число смеси {} достаточно".format(smes_vol, smes_oct // smes_vol))
+                can_add = False
+                for obj in get_all():
+                    if obj.octan > 0 and obj.barrels > 0:
+                        can_add = True
+                if globals()["a" + str(need)].container["current"] -  globals()["a" + str(need)].barrels - smes_vol <= 0:
+                    can_add = False
+                if can_add:
+                    actions = ["Добавить", "Выполнить", "Отменить"]
+                else:
+                    actions = ["Выполнить", "Отменить"]
                 select = [
                     inquirer.List('action',
                                   message="Желаете добавить ингридиенты?",
-                                  choices=["Добавить", "Выполнить", "Отменить"],
+                                  choices=actions,
                                   ),
                 ]
 
