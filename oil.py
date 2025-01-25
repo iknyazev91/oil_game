@@ -203,10 +203,7 @@ def iface_buy():
                 ),
     ]
     answers = inquirer.prompt(select)
-    if not answers:
-        clear()
-        return
-    elif answers["action"] == "Отмена":
+    if not answers or answers["action"] == "Отмена":
         clear()
         return
 
@@ -238,8 +235,7 @@ def iface_buy():
             print("Доступно всего {}".format(dostupno))
             howmuch()
         else:
-            clear()
-            print("Покупка {} баррелей {} за ${}".format(how_much, what.name, int(what.price * int(how_much) * 1.5)))
+            print("\nПокупка {} баррелей {} за ${}".format(how_much, what.name, int(what.price * int(how_much) * 1.5)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -258,7 +254,6 @@ def iface_buy():
                 clear()
                 return
 
-    clear()
     howmuch()
 
 
@@ -314,8 +309,7 @@ def iface_sell():
             print("Доступно всего {}".format(what.barrels))
             howmuch()
         else:
-            clear()
-            print("Продажа {} баррелей {} за ${}".format(how_much, what.name, what.price * int(how_much)))
+            print("\nПродажа {} баррелей {} за ${}".format(how_much, what.name, what.price * int(how_much)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -333,7 +327,6 @@ def iface_sell():
                 clear()
                 return
 
-    clear()
     howmuch()
 
 def templ_peregonka(action = "Nothing", class_= "Null"):
@@ -364,7 +357,7 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                       ),
     ]
     answers = inquirer.prompt(select)
-    if not answers:
+    if not answers or answers["action"] == "Отмена":
         clear()
         return
 
@@ -379,10 +372,6 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                 out = globals()[out_name]
                 if (out.container["current"] - out.barrels) / val < avail:
                     avail = int((out.container["current"] - out.barrels) / val)
-
-    if answers["action"] == "Отмена":
-        clear()
-        return
 
     def howmuch():
         try:
@@ -412,8 +401,8 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                     print("Невозможно {} {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format(action, how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
                     return
 
-        #clear()
-        print("{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
+
+        print("\n{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
         for key, val in what.dist_params.items():
             print("{}\t{} бареллей".format(globals()[key].name, int(val * int(how_much))))
         yesno = [
@@ -423,7 +412,8 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                           ),
         ]
         apply = inquirer.prompt(yesno)
-        if not apply:
+
+        if not apply or apply["action"] == "Отмена":
             clear()
             return
         elif (apply["action"]) == "Подтвердить":
@@ -433,7 +423,6 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
             clear()
             return
 
-    clear()
     howmuch()
 
 def iface_peregonka():
@@ -472,8 +461,7 @@ def iface_add_power():
             print("Доступно всего {}".format(avail))
             howmuch()
         else:
-            clear()
-            print("Увеличение мощности на {} кВт за ${}".format(how_much, power_price * int(how_much)))
+            print("\nУвеличение мощности на {} кВт за ${}".format(how_much, power_price * int(how_much)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -513,10 +501,7 @@ def iface_add_container():
     ]
 
     answers = inquirer.prompt(select)
-    if not answers:
-        clear()
-        return
-    elif answers["action"] == "Отмена":
+    if not answers or answers["action"] == "Отмена":
         clear()
         return
 
@@ -525,7 +510,7 @@ def iface_add_container():
             what = obj
 
     avail = int(cash // barrels_price)
-    clear()
+
     def howmuch():
         print("Доступно/Запланировано {}:\t{}/{}".format(what.name, what.barrels, what.container["base"]))
         print("Можно расширить хранилище {} на {} * 100 баррелей".format(what.name, avail))
@@ -534,6 +519,7 @@ def iface_add_container():
         except:
             clear()
             return
+
         if not how_much.isnumeric():
             clear()
             print("Введите простое положительное число")
@@ -546,8 +532,7 @@ def iface_add_container():
             clear()
             howmuch()
         else:
-            clear()
-            print("Расширение хранилища {} на {} баррелей за ${}".format( what.name, 100 * int(how_much), barrels_price * int(how_much)))
+            print("\n Расширение хранилища {} на {} баррелей за ${}".format( what.name, 100 * int(how_much), barrels_price * int(how_much)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -565,7 +550,6 @@ def iface_add_container():
                 clear()
                 return
 
-    clear()
     howmuch()
 
 
@@ -628,57 +612,84 @@ def iface_mix_mazut():
 
 def iface_mix_aviatop():
     smes = {}
+    #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
+
     clear()
+    print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1")
+
+    def refresh_free():
+        free = globals()["aviatop"].container["current"] - globals()["aviatop"].barrels
+        if smes:
+            for val in smes.values():
+                free -= val
+        return int(free)
+
 
     def select_ing():
-        start_ings = []
-        clear()
-        if smes:
-            show_smes()
-        else:
-            print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучсть смеси должна быть < 1")
-        for ing in get_all():
-            if ing.letuchest != 0 and ing.barrels != 0:
-                if ing in smes and ing.barrels - smes[ing] <= 0:
-                    pass
-                elif ing in smes and ing.barrels - smes[ing] > 0:
-                    start_ings.append(
-                        "{}\tЛетучесть = {}\tВ наличии {}".format(ing.name, ing.letuchest, ing.barrels - smes[ing]))
-                else:
-                    start_ings.append(
-                        "{}\tЛетучесть = {}\tВ наличии {}".format(ing.name, ing.letuchest, ing.barrels))
+        ingridients = []
 
-        start_ings.append("Отмена")
+        free = refresh_free()
+
+        if free > 0:
+            for ing in get_all():
+                if ing.letuchest > 0 and ing.barrels > 0:
+                    if ing in smes and ing.barrels - smes[ing] <= 0:
+                        continue
+                    elif ing in smes and ing.barrels - smes[ing] > 0:
+                        ing_avail = ing.barrels - smes[ing]
+                        if ing.barrels - smes[ing] > free:
+                            limit = free
+                        else:
+                            limit = ing.barrels - smes[ing]
+                    else:
+                        ing_avail = ing.barrels
+                        if ing.barrels > free:
+                            limit = free
+                        else:
+                            limit = ing.barrels
+                    ingridients.append("{}\tЛетучесть. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.letuchest, ing_avail, limit))
+
+        if not ingridients:
+            show_smes()
+            check_actions()
+
+        ingridients.append("Отмена")
 
         select = [
           inquirer.List('action',
                         message="Выберите ингридиент",
-                        choices=start_ings,
+                        choices=ingridients,
                     ),
         ]
 
         answers = inquirer.prompt(select)
-        if not answers:
+        if not answers or answers["action"] == "Отмена":
             clear()
             return
-        elif answers["action"] == "Отмена":
-            clear()
-            return
+
         for obj in get_all():
             if obj.name == answers["action"].partition("\t")[0]:
                 howmuch(obj)
 
     def howmuch(what):
-        clear()
+        free = refresh_free()
+
         if what in smes:
-            limit = what.barrels - smes[what]
+            if what.barrels - smes[what] > free:
+                limit = free
+            else:
+                limit = what.barrels - smes[what]
         else:
-            limit = what.barrels
+            if what.barrels > free:
+                limit = free
+            else:
+                limit = what.barrels
         try:
             how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
         except:
             clear()
             return
+
         if not how_much.isnumeric():
             clear()
             print("Введите простое положительное число")
@@ -692,16 +703,16 @@ def iface_mix_aviatop():
             print("Возможно добавить только {} баррелей".format(limit))
             howmuch(what)
         else:
-            print(smes)
             if what in smes:
                 smes[what] += int(how_much)
             else:
                 smes[what] = int(how_much)
-            clear()
             print("В смесь добавлено {} бaррелей {}".format(int(how_much), what.name))
-            check_smes()
+            show_smes()
+
 
     def show_smes():
+        clear()
         print("Ингридиенты смеси:")
         smes_vol = 0
         smes_let = 0
@@ -709,63 +720,74 @@ def iface_mix_aviatop():
             smes_vol += val
             smes_let += key.letuchest * val
             print("{} {} баррелей".format(key.name, val))
-        if smes_let / smes_vol == 1:
-            print("Объём смеси - {} Летучесть смеси - {} идеальная".format(smes_vol, round(smes_let / smes_vol, 4)))
-        elif smes_let / smes_vol > 1:
-            print("Объём смеси - {} Летучесть смеси - {} черезмерная".format(smes_vol, round(smes_let / smes_vol, 4)))
+        if smes_let / smes_vol > 1:
+            print("Объём смеси - {} Летучесть смеси {} черезммерна".format(smes_vol, smes_let / smes_vol))
             print("Необходимо добавить ингридиенты")
             print("Для получения нужной летучести смеси можно добавить:")
             for obj in get_all():
                 if obj.letuchest < 1 and obj.letuchest != 0 and obj.barrels > 0:
                     dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
                     print("{} {}".format(round(dobavk, 4), obj.name))
-        else:
-            print("Объём смеси - {} Летучесть смеси - {} в допустимых пределах".format(smes_vol, round(smes_let / smes_vol, 4)))
-            print("Для увеличения объёмов можно добавить:")
+        elif smes_let / smes_vol < 1:
+            print("Объём смеси - {} Летучесть смеси {} соответствует норме".format(smes_vol, smes_let / smes_vol))
+            print("Для получения большего объёма смеси можно добавить:")
             for obj in get_all():
-
-                if obj.letuchest > 1 and obj.barrels > 0:
+                if obj.letuchest > 1 and obj.letuchest != 0 and obj.barrels > 0:
                     dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
                     print("{} {}".format(round(dobavk, 4), obj.name))
+        elif smes_let / smes_vol == 1:
+            print("Объём смеси - {} Летучесть смеси {} подходящая".format(smes_vol, round(smes_let / smes_vol), 4 ))
 
-    def check_smes():
-        if not smes:
+        check_actions()
+
+    def check_actions():
+        avail_actions = []
+
+        free = refresh_free()
+        if free != 0:
+            avail_for_add = True
+            for ing in get_all():
+                if ing.letuchest != 0 and ing.barrels != 0:
+                    if ing in smes and ing.barrels - smes[ing] <= 0:
+                        continue
+                    elif free <= 0:
+                        continue
+                    else:
+                        avail_for_add = True
+        else:
+            avail_for_add = False
+        if avail_for_add:
+            avail_actions.append("Добавить")
+
+        smes_vol = 0
+        smes_oct = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_oct += key.letuchest * val
+        if smes_oct // smes_vol <= 1:
+            avail_actions.append("Выполнить")
+
+        avail_actions.append("Отменa")
+
+        select = [
+            inquirer.List('action',
+                          message="Выбрать действие?",
+                          choices=avail_actions,
+                          ),
+        ]
+
+        answers = inquirer.prompt(select)
+        if not answers or answers["action"] == "Отменa":
+            clear()
+            return
+        elif answers["action"] == "Добавить":
             select_ing()
         else:
-            smes_vol = 0
-            smes_let = 0
-            for key, val in smes.items():
-                smes_vol += val
-                smes_let += key.letuchest * val
-            if smes_let / smes_vol > 1:
-                print("Объём смеси - {} Летучесть смеси - {} черезмерна".format(smes_vol, smes_let / smes_vol))
-                print("Необходимо добавить ингридиенты")
+            clear()
+            mix_aviatop(smes)
 
-                select_ing()
-            else:
-                show_smes()
-                select = [
-                    inquirer.List('action',
-                                  message="Желаете добавить ингридиенты?",
-                                  choices=["Добавить", "Выполнить", "Отменить"],
-                                  ),
-                ]
+    select_ing()
 
-                answers = inquirer.prompt(select)
-                if not answers:
-                    clear()
-                    return
-                elif answers["action"] == "Отменить":
-                    clear()
-                    return
-                elif answers["action"] == "Добавить":
-                    select_ing()
-                else:
-                    clear()
-                    mix_aviatop(smes)
-                    #mix_a84(smes)
-    check_smes()
-    return
 
 def iface_mix_a84():
     iface_mix(84)
@@ -775,78 +797,76 @@ def iface_mix_a94():
 
 def iface_mix(need):
     smes = {}
+    #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
+
     clear()
+    print("Операция получения бензина А" + str(need) + " производится путём смешивания октановых ингридиентов.\nОктановое число смеси должно быть > или = " + str(need))
+
+    def refresh_free():
+        free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
+        if smes:
+            for val in smes.values():
+                free -= val
+        return int(free)
+
 
     def select_ing():
-        start_ings = []
-        clear()
-        if smes:
-            show_smes()
-        else:
-            print("Операция получения бензина А" + str(
-                need) + " производится путём смешивания октановых ингридиентов.\nОктановое число смеси должно быть > или = " + str(
-                need))
-        if smes:
-            for key, val in smes.items():
-                free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels - val
-        else:
-            free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
-        for ing in get_all():
-            if ing.octan != 0 and ing.barrels != 0:
-                if ing in smes and ing.barrels - smes[ing] <= 0:
-                    pass
-                elif free_container <= 0:
-                    pass
-                elif ing in smes and ing.barrels - smes[ing] > 0:
-                    if ing.barrels - smes[ing] > free_container:
-                        start_ings.append(
-                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, free_container))
-                    else:
-                        start_ings.append(
-                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, ing.barrels - smes[ing]))
-                else:
-                    if ing.barrels > free_container:
-                        start_ings.append(
-                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, free_container))
-                    else:
-                        start_ings.append(
-                            "{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing.barrels, ing.barrels))
+        ingridients = []
 
-        start_ings.append("Отмена")
+        free = refresh_free()
+
+        if free > 0:
+            for ing in get_all():
+                if ing.octan > 0 and ing.barrels > 0:
+                    if ing in smes and ing.barrels - smes[ing] <= 0:
+                        continue
+                    elif ing in smes and ing.barrels - smes[ing] > 0:
+                        ing_avail = ing.barrels - smes[ing]
+                        if ing.barrels - smes[ing] > free:
+                            limit = free
+                        else:
+                            limit = ing.barrels - smes[ing]
+                    else:
+                        ing_avail = ing.barrels
+                        if ing.barrels > free:
+                            limit = free
+                        else:
+                            limit = ing.barrels
+                    ingridients.append("{}\tО.Ч. = {}\tВ наличии {}\tМожно добавить {}".format(ing.name, ing.octan, ing_avail, limit))
+
+        if not ingridients:
+            show_smes()
+            check_actions()
+
+        ingridients.append("Отмена")
 
         select = [
           inquirer.List('action',
                         message="Выберите ингридиент",
-                        choices=start_ings,
+                        choices=ingridients,
                     ),
         ]
 
         answers = inquirer.prompt(select)
-        if not answers:
+        if not answers or answers["action"] == "Отмена":
             clear()
             return
-        elif answers["action"] == "Отмена":
-            clear()
-            return
+
         for obj in get_all():
             if obj.name == answers["action"].partition("\t")[0]:
                 howmuch(obj)
 
     def howmuch(what):
-        clear()
-        if smes:
-            for key, val in smes.items():
-                free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels - val
-        else:
-            free_container = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
+        free = refresh_free()
+
         if what in smes:
-            if what.barrels - smes[what] > free_container:
-                limit = free_container
+            if what.barrels - smes[what] > free:
+                limit = free
             else:
                 limit = what.barrels - smes[what]
         else:
-            if what.barrels > free_container:
-                limit = free_container
+            if what.barrels > free:
+                limit = free
             else:
                 limit = what.barrels
         try:
@@ -854,6 +874,7 @@ def iface_mix(need):
         except:
             clear()
             return
+
         if not how_much.isnumeric():
             clear()
             print("Введите простое положительное число")
@@ -867,16 +888,16 @@ def iface_mix(need):
             print("Возможно добавить только {} баррелей".format(limit))
             howmuch(what)
         else:
-            print(smes)
             if what in smes:
                 smes[what] += int(how_much)
             else:
                 smes[what] = int(how_much)
-            clear()
             print("В смесь добавлено {} бaррелей {}".format(int(how_much), what.name))
-            check_smes()
+            show_smes()
+
 
     def show_smes():
+        clear()
         print("Ингридиенты смеси:")
         smes_vol = 0
         smes_oct = 0
@@ -884,75 +905,75 @@ def iface_mix(need):
             smes_vol += val
             smes_oct += key.octan * val
             print("{} {} баррелей".format(key.name, val))
-        if need == smes_oct // smes_vol:
-            print("Объём смеси - {} Октановое число смеси {} подходящее".format(smes_vol, smes_oct // smes_vol))
-        elif smes_oct // smes_vol < need:
+        if smes_oct // smes_vol < need:
             print("Объём смеси - {} Октановое число смеси {} недостаточное".format(smes_vol, smes_oct // smes_vol))
             print("Необходимо добавить ингридиенты")
             print("Для получения нужного октанового числа смеси можно добавить:")
             for obj in get_all():
-                if obj.octan > need:
+                if obj.octan > need and obj.barrels > 0:
                     dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
                     if dobavk >= 0:
                         print("{} {}".format(int(dobavk + 1), obj.name))
-        else:
+        elif smes_oct // smes_vol > need:
             print("Объём смеси - {} Октановое число смеси {} достаточное".format(smes_vol, smes_oct // smes_vol))
-            print("Для получения нужного октанового числа смеси можно добавить:")
+            print("Для получения большего объёма смеси можно добавить:")
             for obj in get_all():
-                if obj.octan < need and obj.octan > 0:
+                if obj.octan < need and obj.octan > 0 and obj.barrels > 0:
                     dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
                     if dobavk > 1:
                         print("{} {}".format(int(dobavk), obj.name))
+        elif need == smes_oct // smes_vol:
+            print("Объём смеси - {} Октановое число смеси {} подходящее".format(smes_vol, smes_oct // smes_vol))
 
-    def check_smes():
-        if not smes:
+        check_actions()
+
+    def check_actions():
+        avail_actions = []
+
+        free = refresh_free()
+        if free != 0:
+            avail_for_add = True
+            for ing in get_all():
+                if ing.octan != 0 and ing.barrels != 0:
+                    if ing in smes and ing.barrels - smes[ing] <= 0:
+                        continue
+                    elif free <= 0:
+                        continue
+                    else:
+                        avail_for_add = True
+        else:
+            avail_for_add = False
+        if avail_for_add:
+            avail_actions.append("Добавить")
+
+        smes_vol = 0
+        smes_oct = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_oct += key.octan * val
+        if smes_oct // smes_vol >= need:
+            avail_actions.append("Выполнить")
+
+        avail_actions.append("Отменa")
+
+        select = [
+            inquirer.List('action',
+                          message="Выбрать действие?",
+                          choices=avail_actions,
+                          ),
+        ]
+
+        answers = inquirer.prompt(select)
+        if not answers or answers["action"] == "Отменa":
+            clear()
+            return
+        elif answers["action"] == "Добавить":
             select_ing()
         else:
-            smes_vol = 0
-            smes_oct = 0
-            for key, val in smes.items():
-                smes_vol += val
-                smes_oct += key.octan * val
-            if smes_oct // smes_vol < need:
-                print("Объём смеси - {} Октановое число смеси {} недостаточно".format(smes_vol, smes_oct // smes_vol))
-                print("Необходимо добавить ингридиенты")
+            clear()
+            globals()["mix_a" + str(need)](smes)
 
-                select_ing()
-            else:
-                show_smes()
-                #print("Объём смеси - {} Октановое число смеси {} достаточно".format(smes_vol, smes_oct // smes_vol))
-                can_add = False
-                for obj in get_all():
-                    if obj.octan > 0 and obj.barrels > 0:
-                        can_add = True
-                if globals()["a" + str(need)].container["current"] -  globals()["a" + str(need)].barrels - smes_vol <= 0:
-                    can_add = False
-                if can_add:
-                    actions = ["Добавить", "Выполнить", "Отменить"]
-                else:
-                    actions = ["Выполнить", "Отменить"]
-                select = [
-                    inquirer.List('action',
-                                  message="Желаете добавить ингридиенты?",
-                                  choices=actions,
-                                  ),
-                ]
-
-                answers = inquirer.prompt(select)
-                if not answers:
-                    clear()
-                    return
-                elif answers["action"] == "Отменить":
-                    clear()
-                    return
-                elif answers["action"] == "Добавить":
-                    select_ing()
-                else:
-                    clear()
-                    globals()["mix_a" + str(need)](smes)
-                    #mix_a84(smes)
-    check_smes()
-    return
+    select_ing()
 
 def dela_incr(action, how_much):
     global dela_count
