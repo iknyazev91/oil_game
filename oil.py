@@ -1,7 +1,6 @@
 import gc
 import json
 import time
-from resource import RLIMIT_AS
 
 import inquirer
 import sys
@@ -110,7 +109,6 @@ def check_avail_actions():
     else:
         deny_actions.append("reforming")
 
-
     maz_coef = 0
     for ing in get_all():
         if ing.for_mazut != 0:
@@ -135,6 +133,20 @@ def check_avail_actions():
         avail_actions.append("mix_aviatop")
     else:
         deny_actions.append("mix_aviatop")
+
+    if cash >= 100000:
+        print("Поздравляю! Вы заработали $1000000")
+        print("Это победа!")
+        end = input("Если желаете начать сначала, введите да")
+        #Вот здесь по условию удалить сейв.
+        iface_exit()
+
+    if len(avail_actions) == 1:
+        print("Вы исчерпали все возможности заработать $1000000")
+        print("Вы обанкротились за {} дней, успев выполнить {} действий".format(day, all_act_count))
+        #Вот здесь сформировать файл с результатами, наверное. А может и не надо.
+        end = input("Нажмите Enter")
+        iface_exit()
 
     avail_actions.append("next_day")
     avail_actions.append("exit")
@@ -167,6 +179,10 @@ def iface_info():
     info_all()
 
 def iface_exit():
+    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    stroka = "{" + "\"exit\" : {}".format(timestamp) + "}"
+    with open(nick + ".log", "a", encoding="utf-8") as savefile:
+        savefile.write(stroka + '\n')
     clear()
     print("Пока!")
     save()
@@ -181,13 +197,13 @@ def iface_buy():
     avail_buy = []
     deny_buy = []
     for obj in get_all():
-        if cash >= obj.price * 1.5 and obj.barrels < obj.container["current"] :
-            if cash // (obj.price * 1.5) < obj.container["current"] - obj.barrels:
-                dostupno =  int(cash // (obj.price * 1.5))
+        if cash >= obj.price * buy_coef and obj.barrels < obj.container["current"] :
+            if cash // (obj.price * buy_coef) < obj.container["current"] - obj.barrels:
+                dostupno =  int(cash // (obj.price * buy_coef))
             else:
                 dostupno = obj.container["current"] - obj.barrels
 
-            avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, int(obj.price * 1.5) ,obj.barrels ,obj.container["current"] , dostupno))
+            avail_buy.append("{}\tЦена за баррель: ${}\tИмеется: {}/{}\tДоступно: {}".format(obj.name, int(obj.price * buy_coef) ,obj.barrels ,obj.container["current"] , dostupno))
         else:
             deny_buy.append("{} для покупки недоступно. Недостаточчно денег".format(obj.name))
 
@@ -211,8 +227,8 @@ def iface_buy():
         if obj.name == answers["action"].partition("\t")[0]:
             what = obj
 
-    if cash // (what.price * 1.5) < what.container["current"] - what.barrels:
-        dostupno = int(cash // (what.price * 1.5))
+    if cash // (what.price * buy_coef) < what.container["current"] - what.barrels:
+        dostupno = int(cash // (what.price * buy_coef))
     else:
         dostupno = what.container["current"] - what.barrels
 
@@ -235,7 +251,7 @@ def iface_buy():
             print("Доступно всего {}".format(dostupno))
             howmuch()
         else:
-            print("\nПокупка {} баррелей {} за ${}".format(how_much, what.name, int(what.price * int(how_much) * 1.5)))
+            print("\nПокупка {} баррелей {} за ${}".format(how_much, what.name, int(what.price * int(how_much) * buy_coef)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -374,6 +390,7 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                     avail = int((out.container["current"] - out.barrels) / val)
 
     def howmuch():
+
         try:
             how_much = input("Сколько {} из {} желаете {}?\n".format(what.name, avail, action))
         except:
@@ -401,27 +418,26 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
                     print("Невозможно {} {} {}. В хранилище {} недостаточно места\nДоступно {}, но потребуется {} места".format(action, how_much, what.name, ing.name, ing.container["current"] - ing.barrels, int(value * int(how_much))))
                     return
 
+            print("\n{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
+            for key, val in what.dist_params.items():
+                print("{}\t{} бареллей".format(globals()[key].name, int(val * int(how_much))))
+            yesno = [
+                inquirer.List('action',
+                              message="Всё верно?",
+                              choices=["Подтвердить", "Отмена"]
+                              ),
+            ]
+            apply = inquirer.prompt(yesno)
 
-        print("\n{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
-        for key, val in what.dist_params.items():
-            print("{}\t{} бареллей".format(globals()[key].name, int(val * int(how_much))))
-        yesno = [
-            inquirer.List('action',
-                          message="Всё верно?",
-                          choices=["Подтвердить", "Отмена"]
-                          ),
-        ]
-        apply = inquirer.prompt(yesno)
-
-        if not apply or apply["action"] == "Отмена":
-            clear()
-            return
-        elif (apply["action"]) == "Подтвердить":
-            clear()
-            what.peregonka(int(how_much))
-        else:
-            clear()
-            return
+            if not apply or apply["action"] == "Отмена":
+                clear()
+                return
+            elif (apply["action"]) == "Подтвердить":
+                clear()
+                what.peregonka(int(how_much))
+            else:
+                clear()
+                return
 
     howmuch()
 
@@ -484,7 +500,7 @@ def iface_add_power():
 
 def iface_add_container():
     clear()
-    print("Стоимость за 100 баррелей хранилища - ${}\nХранилища будут расширены на следующий день".format(barrels_price))
+    print("Стоимость за 50 баррелей хранилища - ${}\nХранилища будут расширены на следующий день".format(barrels_price))
     avail_add = []
     for obj in get_all():
         if isinstance(obj, Liquid):
@@ -532,7 +548,7 @@ def iface_add_container():
             clear()
             howmuch()
         else:
-            print("\n Расширение хранилища {} на {} баррелей за ${}".format( what.name, 100 * int(how_much), barrels_price * int(how_much)))
+            print("\nРасширение хранилища {} на {} баррелей за ${}".format( what.name, 50 * int(how_much), barrels_price * int(how_much)))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -615,7 +631,7 @@ def iface_mix_aviatop():
     #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
 
     clear()
-    print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1")
+    print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1\nИнгридиентов должно быть не меньше двух")
 
     def refresh_free():
         free = globals()["aviatop"].container["current"] - globals()["aviatop"].barrels
@@ -721,7 +737,7 @@ def iface_mix_aviatop():
             smes_let += key.letuchest * val
             print("{} {} баррелей".format(key.name, val))
         if smes_let / smes_vol > 1:
-            print("Объём смеси - {} Летучесть смеси {} черезммерна".format(smes_vol, smes_let / smes_vol))
+            print("Объём смеси - {} Летучесть смеси {} черезмерна".format(smes_vol, round(smes_let / smes_vol), 4 ))
             print("Необходимо добавить ингридиенты")
             print("Для получения нужной летучести смеси можно добавить:")
             for obj in get_all():
@@ -729,7 +745,7 @@ def iface_mix_aviatop():
                     dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
                     print("{} {}".format(round(dobavk, 4), obj.name))
         elif smes_let / smes_vol < 1:
-            print("Объём смеси - {} Летучесть смеси {} соответствует норме".format(smes_vol, smes_let / smes_vol))
+            print("Объём смеси - {} Летучесть смеси {} соответствует норме".format(smes_vol, round(smes_let / smes_vol), 4 ))
             print("Для получения большего объёма смеси можно добавить:")
             for obj in get_all():
                 if obj.letuchest > 1 and obj.letuchest != 0 and obj.barrels > 0:
@@ -744,18 +760,17 @@ def iface_mix_aviatop():
         avail_actions = []
 
         free = refresh_free()
-        if free != 0:
-            avail_for_add = True
-            for ing in get_all():
-                if ing.letuchest != 0 and ing.barrels != 0:
-                    if ing in smes and ing.barrels - smes[ing] <= 0:
-                        continue
-                    elif free <= 0:
-                        continue
-                    else:
-                        avail_for_add = True
-        else:
-            avail_for_add = False
+
+        avail_for_add = False
+        for ing in get_all():
+            if ing.letuchest != 0 and ing.barrels != 0:
+                if ing in smes and ing.barrels - smes[ing] <= 0:
+                    continue
+                elif free <= 0:
+                    continue
+                elif free != 0:
+                    avail_for_add = True
+
         if avail_for_add:
             avail_actions.append("Добавить")
 
@@ -764,7 +779,7 @@ def iface_mix_aviatop():
         for key, val in smes.items():
             smes_vol += val
             smes_oct += key.letuchest * val
-        if smes_oct // smes_vol <= 1:
+        if smes_oct / smes_vol <= 1 and len(smes) > 1:
             avail_actions.append("Выполнить")
 
         avail_actions.append("Отменa")
@@ -1032,9 +1047,11 @@ def start(nick):
     global all_act_count
     global power_price
     global barrels_price
-    barrels_price = 100
-    power_price = 10
+    global buy_coef
+    #barrels_price = 100
+    #power_price = 10
     all_act_count = 0
+    buy_coef = 2
     with open("start_params.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
         globals()["nick"] = str(nick)
@@ -1059,7 +1076,7 @@ def start(nick):
 
 def save():
     all_data = {}
-    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "all_act_count"):
         value_ = globals()[object]
         all_data[object] = value_
 
@@ -1080,7 +1097,7 @@ def load():
     with open(nick +"_save.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
 
-    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "date"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "date", "all_act_count"):
         globals()[object] = all_data[object]
 
     for object in all_data.keys():
@@ -1165,10 +1182,10 @@ def mix_aviatop(ingridients):
 
     for key, val in ingridients.items():
         if key.letuchest == 0:
-            print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, ing[0].name))
+            print("Операция смешивания {}} не может быть выполнена. {} не пригоден для этого".format(product.name, key.name))
             return
         elif key.barrels < val:
-            print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, ing[0].name, ing[0].barrels, ing[1]))
+            print("Операция смешивания {} не может быть выполнена. Недостаточно {}. Вы имеете {}, a необходимо {}".format(product.name, key.name, key.barrels, val))
             return
         else:
             full_letuchest += (key.letuchest * val)
@@ -1211,9 +1228,9 @@ class Liquid:
     def buy(self, how_much: int):
         global cash
         action = "Покупка " + self.name
-        if cash < ((self.price * 1.5) * how_much):
+        if cash < ((self.price * buy_coef) * how_much):
             self.action_info(action, how_much, False)
-            print("Недостаточно средств. Вы имеете ${} , но сумма сделки ${}".format(cash, (self.price * 1.5) * how_much))
+            print("Недостаточно средств. Вы имеете ${} , но сумма сделки ${}".format(cash, (self.price * buy_coef) * how_much))
             return
         elif (self.barrels + how_much) > self.container["current"]:
             self.action_info(action, how_much, False)
@@ -1221,7 +1238,7 @@ class Liquid:
             return
         else:
             self.barrels += how_much
-            cash -= int(((self.price * 1.5) * how_much))
+            cash -= int(((self.price * buy_coef) * how_much))
             dela_incr(action, how_much)
             self.action_info(action, how_much, True)
 
@@ -1255,15 +1272,15 @@ class Liquid:
         global dela_count
         global barrels_price
         action = "Расширение хранилища"
-        barrels_price = 100
+        #barrels_price = 100
         if cash < (how_much * barrels_price):
             print("Операция расширения хранилища для {} не может быть выполнена. Недостаточно денег. Вы имеете ${} , но стоимость сделки ${}".format(self.name, cash, how_much * barrels_price))
-            self.action_info(action, (how_much * 100), False)
+            self.action_info(action, (how_much * 50), False)
         else:
-            self.container["base"] += (how_much * barrels_price)
+            self.container["base"] += (how_much * 50)
             cash -= int(how_much * barrels_price)
             dela_incr(action, how_much)
-            print("Операция {} {} на {} баррелей запланирована на завтра".format(action, self.name, how_much * 100))
+            print("Операция {} {} на {} баррелей запланирована на завтра".format(action, self.name, how_much * 50))
 
 
     def action_info(self, action: str, how_much: int, suc: bool):
