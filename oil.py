@@ -1,7 +1,6 @@
-import gc
 import json
-import time
-
+from time import strftime
+from terminaltables import AsciiTable
 import inquirer
 import sys
 from os.path import isfile
@@ -42,12 +41,7 @@ def check_avail_actions():
         next_day="Лечь спать",
         exit="exit")
 
-    avail_actions.append("info")
-
-    if cash > oil.price:
-        avail_actions.append("buy")
-    else:
-        deny_actions.append("buy")
+    #avail_actions.append("info")
 
     all_barrels = 0
     for obj in get_all():
@@ -56,6 +50,11 @@ def check_avail_actions():
         avail_actions.append("sell")
     else:
         deny_actions.append("sell")
+
+    if cash > oil.price:
+        avail_actions.append("buy")
+    else:
+        deny_actions.append("buy")
 
     if cash > power_price:
         avail_actions.append("add_power")
@@ -113,36 +112,49 @@ def check_avail_actions():
     for ing in get_all():
         if ing.for_mazut != 0:
             maz_coef += ing.for_mazut
-    if gazoil.barrels >= gazoil.for_mazut and maslo_K.barrels >= maslo_K.for_mazut and mazut.barrels >= mazut.for_mazut and ostatok.barrels >= ostatok.for_mazut and top_mazut.container["current"] - top_mazut.barrels >= maz_coef:
+    if (    gazoil.barrels >= gazoil.for_mazut and
+            maslo_K.barrels >= maslo_K.for_mazut and
+            mazut.barrels >= mazut.for_mazut and
+            ostatok.barrels >= ostatok.for_mazut and
+            top_mazut.container["current"] - top_mazut.barrels >= maz_coef and
+            top_mazut.container["current"] > 0):
         avail_actions.append("mix_mazut")
     else:
         deny_actions.append("mix_mazut")
 
-    if benzin.barrels > 0 or benzin_K.barrels > 0 or benzin_R.barrels > 0:
+    if (benzin.barrels > 0 or benzin_K.barrels > 0 or benzin_R.barrels > 0) and a84.container["current"] > 0:
         avail_actions.append("mix_a84")
     else:
         deny_actions.append("mix_a84")
 
-    if benzin_K.barrels > 0 or benzin_R.barrels > 0:
+    if (benzin_K.barrels > 0 or benzin_R.barrels > 0) and a94.container["current"] > 0:
         if a94.container["current"] - a94.barrels > 0:
             avail_actions.append("mix_a94")
     else:
         deny_actions.append("mix_a94")
 
-    if gazoil.barrels > 0 or mazut.barrels > 0:
+    if (gazoil.barrels > 0 or mazut.barrels > 0) and aviatop.container["current"] > 0:
         avail_actions.append("mix_aviatop")
     else:
         deny_actions.append("mix_aviatop")
 
-    if cash >= 100000:
-        print("Поздравляю! Вы заработали $1000000")
-        print("Это победа!")
-        end = input("Если желаете начать сначала, введите да")
+    if cash >= 10000:
+        global win
+        if win == 0:
+            print("Поздравляю! Вы заработали $10000")
+            print("Это победа! Попробуйте заработать $100к?.\n")
+            end = input("Жмите Enter")
+            win += 1
+            clear()
+        if cash >= 100000:
+            if win == 1:
+                print("Поздравляю! Вы заработали $100000")
+                print("Это невероятно! Не думал, что кто-то сможет.\n")
+                win += 1
         #Вот здесь по условию удалить сейв.
-        iface_exit()
 
-    if len(avail_actions) == 1:
-        print("Вы исчерпали все возможности заработать $1000000")
+    if len(avail_actions) == 0:
+        print("Вы исчерпали все возможности заработать $10000")
         print("Вы обанкротились за {} дней, успев выполнить {} действий".format(day, all_act_count))
         #Вот здесь сформировать файл с результатами, наверное. А может и не надо.
         end = input("Нажмите Enter")
@@ -156,6 +168,7 @@ def check_avail_actions():
 
     actions = list(actions_dict[i] for i in avail_actions)
 
+    iface_info()
     select = [
       inquirer.List('action',
                     message="Выберите действие",
@@ -175,11 +188,10 @@ def check_avail_actions():
     check_avail_actions()
 
 def iface_info():
-    clear()
     info_all()
 
 def iface_exit():
-    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    timestamp = strftime("%d-%M-%y_%H:%M")
     stroka = "{" + "\"exit\" : {}".format(timestamp) + "}"
     with open(nick + ".log", "a", encoding="utf-8") as savefile:
         savefile.write(stroka + '\n')
@@ -211,7 +223,7 @@ def iface_buy():
     #    print(stroka)
 
     avail_buy.append("Отмена")
-
+    iface_info()
     select = [
       inquirer.List('action',
                     message="Что купить?",
@@ -234,16 +246,17 @@ def iface_buy():
 
     def howmuch():
         try:
-            how_much = input("Сколько {} из доступных {} желаете купить?\n".format(what.name, dostupno))
+            how_much = input("Сколько {} желаете купить? (Enter - все {}): ".format(what.name, dostupno)) or str(dostupno)
         except:
             clear()
             return
         if not how_much.isnumeric():
-            clear()
+            #clear()
             print("Введите простое число")
             howmuch()
-        elif int(how_much) <= 0 :
+        if int(how_much) <= 0 :
             clear()
+            print(how_much)
             print("Введите простое ненулевое число")
             howmuch()
         elif int(how_much) > dostupno:
@@ -287,7 +300,7 @@ def iface_sell():
     #    print(stroka)
 
     avail_sell.append("Отмена")
-
+    iface_info()
     select = [
         inquirer.List('action',
                       message="Что продать?",
@@ -309,7 +322,7 @@ def iface_sell():
 
     def howmuch():
         try:
-            how_much = input("Сколько {} из {} желаете продать?\n".format(what.name, what.barrels))
+            how_much = input("Сколько {} желаете продать? (Enter - все {}): ".format(what.name, what.barrels)) or str(what.barrels)
         except:
             clear()
             return
@@ -366,6 +379,7 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
 
     avail_pere.append("Отмена")
 
+    iface_info()
     select = [
         inquirer.List('action',
                       message="Что {}?".format(action),
@@ -392,20 +406,17 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
     def howmuch():
 
         try:
-            how_much = input("Сколько {} из {} желаете {}?\n".format(what.name, avail, action))
+            how_much = input("Сколько {} желаете {}? (Enter - все {})\n".format(what.name, action, avail)) or str(avail)
         except:
             clear()
             return
         if not how_much.isnumeric():
-            clear()
             print("Введите простое число")
             howmuch()
         elif int(how_much) <= 0:
-            clear()
             print("Введите простое ненулевое число")
             howmuch()
         elif int(how_much) > avail:
-            clear()
             print("Доступно всего {}".format(avail))
             howmuch()
         elif int(how_much) > power["current"]:
@@ -420,7 +431,7 @@ def templ_peregonka(action = "Nothing", class_= "Null"):
 
             print("\n{} {} баррелей {}\nВ процессе будет получено:".format(action, how_much, what.name))
             for key, val in what.dist_params.items():
-                print("{}\t{} бареллей".format(globals()[key].name, int(val * int(how_much))))
+                print("{}\t{} баррелей".format(globals()[key].name, int(val * int(how_much))))
             yesno = [
                 inquirer.List('action',
                               message="Всё верно?",
@@ -459,21 +470,18 @@ def iface_add_power():
     def howmuch():
         try:
             how_much = input(
-                "Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?\n".format(
+                "Стоимость за кВт - ${}\nДенег хватит на увеличение на {} кВт\nМощности будут использованы на следующий день\nНа сколько кВт желаете увеличить?: ".format(
                     power_price, avail))
         except:
             clear()
             return
         if not how_much.isnumeric():
-            clear()
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) <= 0:
-            clear()
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > avail:
-            clear()
             print("Доступно всего {}".format(avail))
             howmuch()
         else:
@@ -494,7 +502,7 @@ def iface_add_power():
             else:
                 clear()
                 return
-
+    iface_info()
     howmuch()
 
 
@@ -509,6 +517,7 @@ def iface_add_container():
 
     avail_add.append("Отмена")
 
+    iface_info()
     select = [
         inquirer.List('action',
                       message="Какое хранилище расширить?",
@@ -529,23 +538,23 @@ def iface_add_container():
 
     def howmuch():
         print("Доступно/Запланировано {}:\t{}/{}".format(what.name, what.barrels, what.container["base"]))
-        print("Можно расширить хранилище {} на {} * 100 баррелей".format(what.name, avail))
+        print("Можно расширить хранилище {} на {} * 50 баррелей".format(what.name, avail))
         try:
-            how_much = input("На сколько расширить хранилище\n")
+            how_much = input("На сколько расширить хранилище: ")
         except:
             clear()
             return
 
         if not how_much.isnumeric():
-            clear()
+
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) <= 0:
-            clear()
+
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > avail:
-            clear()
+
             howmuch()
         else:
             print("\nРасширение хранилища {} на {} баррелей за ${}".format( what.name, 50 * int(how_much), barrels_price * int(how_much)))
@@ -589,20 +598,17 @@ def iface_mix_mazut():
 
     def howmuch():
         try:
-            how_much = input("Сколько * {} объёмов из возможных {} смешать?\n".format(coef, limit))
+            how_much = input("Сколько * {} объёмов из возможных {} смешать?: ".format(coef, limit))
         except:
             clear()
             return
         if not how_much.isnumeric():
-            clear()
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) <= 0:
-            clear()
             print("Введите простое положительное число")
             howmuch()
         elif int(how_much) > limit:
-            clear()
             print("Возможно смешать только {} объёмов".format(limit))
             howmuch()
         else:
@@ -630,8 +636,6 @@ def iface_mix_aviatop():
     smes = {}
     #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
 
-    clear()
-    print("Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1\nИнгридиентов должно быть не меньше двух")
 
     def refresh_free():
         free = globals()["aviatop"].container["current"] - globals()["aviatop"].barrels
@@ -670,6 +674,11 @@ def iface_mix_aviatop():
             check_actions()
 
         ingridients.append("Отмена")
+        clear()
+
+        iface_info()
+        print(
+            "Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1\nИнгридиентов должно быть не меньше двух")
 
         select = [
           inquirer.List('action',
@@ -701,21 +710,21 @@ def iface_mix_aviatop():
             else:
                 limit = what.barrels
         try:
-            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
+            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?: ".format(what.name, limit))
         except:
             clear()
             return
 
         if not how_much.isnumeric():
-            clear()
+
             print("Введите простое положительное число")
             howmuch(what)
         elif int(how_much) <= 0:
-            clear()
+
             print("Введите простое положительное число")
             howmuch(what)
         elif int(how_much) > what.barrels:
-            clear()
+
             print("Возможно добавить только {} баррелей".format(limit))
             howmuch(what)
         else:
@@ -761,6 +770,14 @@ def iface_mix_aviatop():
 
         free = refresh_free()
 
+        smes_vol = 0
+        smes_oct = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_oct += key.letuchest * val
+        if smes_oct / smes_vol <= 1 and len(smes) > 1:
+            avail_actions.append("Выполнить")
+
         avail_for_add = False
         for ing in get_all():
             if ing.letuchest != 0 and ing.barrels != 0:
@@ -773,14 +790,6 @@ def iface_mix_aviatop():
 
         if avail_for_add:
             avail_actions.append("Добавить")
-
-        smes_vol = 0
-        smes_oct = 0
-        for key, val in smes.items():
-            smes_vol += val
-            smes_oct += key.letuchest * val
-        if smes_oct / smes_vol <= 1 and len(smes) > 1:
-            avail_actions.append("Выполнить")
 
         avail_actions.append("Отменa")
 
@@ -885,21 +894,17 @@ def iface_mix(need):
             else:
                 limit = what.barrels
         try:
-            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?\n".format(what.name, limit))
+            how_much = input("Сколько баррелей {} из доступных {} добавить в смесь?: ".format(what.name, limit))
         except:
             clear()
             return
-
         if not how_much.isnumeric():
-            clear()
             print("Введите простое положительное число")
             howmuch(what)
         elif int(how_much) <= 0:
-            clear()
             print("Введите простое положительное число")
             howmuch(what)
         elif int(how_much) > what.barrels:
-            clear()
             print("Возможно добавить только {} баррелей".format(limit))
             howmuch(what)
         else:
@@ -945,6 +950,14 @@ def iface_mix(need):
     def check_actions():
         avail_actions = []
 
+        smes_vol = 0
+        smes_oct = 0
+        for key, val in smes.items():
+            smes_vol += val
+            smes_oct += key.octan * val
+        if smes_oct // smes_vol >= need:
+            avail_actions.append("Выполнить")
+
         free = refresh_free()
         if free != 0:
             avail_for_add = True
@@ -960,14 +973,6 @@ def iface_mix(need):
             avail_for_add = False
         if avail_for_add:
             avail_actions.append("Добавить")
-
-        smes_vol = 0
-        smes_oct = 0
-        for key, val in smes.items():
-            smes_vol += val
-            smes_oct += key.octan * val
-        if smes_oct // smes_vol >= need:
-            avail_actions.append("Выполнить")
 
         avail_actions.append("Отменa")
 
@@ -995,7 +1000,7 @@ def dela_incr(action, how_much):
     global all_act_count
     all_act_count += 1
     dela_count += 1
-    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    timestamp = strftime("%d-%M-%y_%H:%M")
     stroka = "{" + "\"count\" : {}, : \"timestamp\" : {}, \"day\" : {}, \"dela\" : {}, \"action\" : {}, \"how_much\" : {}".format(all_act_count, timestamp, day, dela_count, action, how_much) + "}"
     with open(nick + ".log", "a", encoding="utf-8") as savefile:
         savefile.write(stroka + '\n')
@@ -1005,10 +1010,10 @@ def next_day():
     global day
     global dela_count
     day += 1
-    print("День {}".format(day))
+    #print("День {}".format(day))
     dela_count = 0
-    for obj in gc.get_objects():
-        if isinstance(obj, Liquid) and obj.container["base"] != obj.container["current"]:
+    for obj in get_all():
+        if obj.container["base"] != obj.container["current"]:
             obj.container["current"] = obj.container["base"]
             print("Хранилище для {} увеличено до {}".format(obj.name, obj.container["current"]))
     power["current"] = power["base"]
@@ -1030,7 +1035,7 @@ def info_cash():
 
 
 def info_power():
-    print("Остаток мощности: {}/{} КВт".format(power["current"], power["base"]))
+    print("Мощности: {}/{} КВт".format(power["current"], power["base"]))
 
 
 def info_all():
@@ -1038,18 +1043,30 @@ def info_all():
     print("День {}".format(day))
     info_cash()
     info_power()
-    for element in get_all():
-        element.info()
     print("Дел сделано сегодня: {}".format(dela_count))
+    table_data = [['Что', 'Сколько']]
+    for obj in get_all():
+        if obj.container["base"] > obj.container["current"]:
+            c_add = "+" + str(obj.container["base"] - obj.container["current"])
+        else:
+            c_add = ""
+        if obj.barrels > 0 or obj.container["base"] > 0:
+            table_data.append([obj.name, "{}/{}{}".format(obj.barrels, obj.container["current"], c_add)])
+    table = AsciiTable(table_data)
+    print(table.table)
+
+
 
 
 def start(nick):
+    global win
     global all_act_count
     global power_price
     global barrels_price
     global buy_coef
     #barrels_price = 100
     #power_price = 10
+    win = 0
     all_act_count = 0
     buy_coef = 2
     with open("start_params.json", "r", encoding="utf-8") as savefile:
@@ -1068,15 +1085,16 @@ def start(nick):
             value_ = all_data[object]["value"]
             globals()[object]  = class_(**value_)
 
-    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    timestamp = strftime("%d-%M-%y_%H:%M")
     stroka = "{" + "\"start\" : {}".format(timestamp) + "}"
     with open(nick + ".log", "a", encoding="utf-8") as savefile:
         savefile.write(stroka + '\n')
 
 
 def save():
+
     all_data = {}
-    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "all_act_count"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "all_act_count", "win"):
         value_ = globals()[object]
         all_data[object] = value_
 
@@ -1086,7 +1104,7 @@ def save():
             class_ = globals()[object].__class__.__name__
             value_ = globals()[object].__dict__
             all_data[object] = {"class": class_, "value": value_}
-    timestamp = time.strftime("%d-%M-%y_%H:%M")
+    timestamp = strftime("%d-%M-%y_%H:%M")
     all_data["date"]=str(format(timestamp))
 
     with open(nick + "_save.json", "w", encoding="utf-8") as savefile:
@@ -1097,7 +1115,7 @@ def load():
     with open(nick +"_save.json", "r", encoding="utf-8") as savefile:
         all_data = json.loads(savefile.read())
 
-    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "date", "all_act_count"):
+    for object in ("nick", "day", "cash", "power", "dela_count", "barrels_price", "power_price", "date", "all_act_count", "win"):
         globals()[object] = all_data[object]
 
     for object in all_data.keys():
@@ -1105,6 +1123,7 @@ def load():
             class_ = getattr(sys.modules[__name__], all_data[object]["class"])
             value_ = all_data[object]["value"]
             globals()[object]  = class_(**value_)
+
 
 
 def add_power(how_much: int):
@@ -1316,17 +1335,21 @@ staaaart = 0
 
 if __name__ == "__main__":
     print("\033[H\033[J", end="")
-    #try:
-    #    name = input("Введите своё имя\n")
-    #except:
-    #    iface_exit()
-    #
+    try:
+        nick = input("Введите своё имя: ")
+    except:
+        clear()
+        exit()
+    if nick == "":
+        clear()
+        exit()
 
-    nick = "igor"
+    #nick = "igor"
 
     if isfile(nick + "_save.json"):
         with open(nick + "_save.json", "r", encoding="utf-8") as savefile:
             all_data = json.loads(savefile.read())
+        clear()
         print("Игра загружена c " + str(all_data["date"]))
         start(nick)
         load()

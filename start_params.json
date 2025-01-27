@@ -18,11 +18,11 @@
       "for_mazut": 0,
       "letuchest": 0.0,
       "dist_params": {
-        "benzin": 0.1,
-        "ligroin": 0.2,
-        "kerosin": 0.2,
+        "benzin": 0.10,
+        "ligroin": 0.22,
+        "kerosin": 0.21,
         "gazoil": 0.12,
-        "mazut": 0.2,
+        "mazut": 0.22,
         "ostatok": 0.13
       },
       "barrels": 0,
@@ -41,7 +41,7 @@
       "for_mazut": 0,
       "letuchest": 0.0,
       "dist_params": {
-        "benzin_R": 0.6
+        "benzin_R": 0.64
       },
       "barrels": 0,
       "container": {
@@ -112,7 +112,7 @@
       "price": 20,
       "octan": 0,
       "for_mazut": 4,
-      "letuchest": 0.6,
+      "letuchest": 0.5,
       "dist_params": {
         "benzin_K": 0.2,
         "maslo_K": 0.75
@@ -130,8 +130,8 @@
       "name": "Остаток",
       "price": 5,
       "octan": 0,
-      "for_mazut": 2,
-      "letuchest": 0.0,
+      "for_mazut": 3,
+      "letuchest": 2.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
@@ -144,22 +144,6 @@
     "class": "Liquid",
     "value": {
       "name": "R-Бензин",
-      "price": 55,
-      "octan": 115,
-      "for_mazut": 0,
-      "letuchest": 0.0,
-      "dist_params": {},
-      "barrels": 0,
-      "container": {
-        "base": 50,
-        "current": 50
-      }
-    }
-  },
-  "benzin_K": {
-    "class": "Liquid",
-    "value": {
-      "name": "K-Бензин",
       "price": 50,
       "octan": 105,
       "for_mazut": 0,
@@ -167,8 +151,24 @@
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
+      }
+    }
+  },
+  "benzin_K": {
+    "class": "Liquid",
+    "value": {
+      "name": "K-Бензин",
+      "price": 60,
+      "octan": 115,
+      "for_mazut": 0,
+      "letuchest": 0.0,
+      "dist_params": {},
+      "barrels": 0,
+      "container": {
+        "base": 0,
+        "current": 0
       }
     }
   },
@@ -183,8 +183,8 @@
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
       }
     }
   },
@@ -192,15 +192,15 @@
     "class": "Liquid",
     "value": {
       "name": "Топ-мазут",
-      "price": 50,
+      "price": 70,
       "octan": 0,
       "for_mazut": 0,
       "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
       }
     }
   },
@@ -215,8 +215,8 @@
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
       }
     }
   },
@@ -224,15 +224,15 @@
     "class": "Liquid",
     "value": {
       "name": "Бензин-А94",
-      "price": 70,
+      "price": 75,
       "octan": 94,
       "for_mazut": 0,
       "letuchest": 0.0,
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
       }
     }
   },
@@ -247,8 +247,8 @@
       "dist_params": {},
       "barrels": 0,
       "container": {
-        "base": 50,
-        "current": 50
+        "base": 0,
+        "current": 0
       }
     }
   }

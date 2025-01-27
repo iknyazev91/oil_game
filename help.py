@@ -1,55 +1,157 @@
-import os
-import keyboard
-import time
+import textwrap
+import json
+from terminaltables import AsciiTable
 
-message = '''
-В этой игре необходимо перераспределеть нефть для обработки, получать прибыль. Азазза. ужужу
-Нажмите кнопку Enter
-'''
-print(message)
-while True:  # making a loop
-    try:  # used try so that if user pressed other than the given key error will not be shown
-        if keyboard.is_pressed('Enter'):  # if key 'Enter' is pressed 
-            os.system('cls')
-            print('You Pressed A Key!')
-            break  # finishing the loop
+from oil import PervichkaR
 
+with open("start_params.json", "r", encoding="utf-8") as savefile:
+    all_data = json.loads(savefile.read())
+
+def skip():
+    try:
+        bbb = input("Дальше")
     except:
-        break  # if user pressed a key other than the given key the loop will break
+        exit()
 
-time.sleep(5)
+def intro():
+    print("   Правила игры   ".center(80, "*"))
+    print ("Покупайте Нефть, перегоняйте, перерабатывайте, смешивайте и продавайте.\n"
+            "Постарайтесь достигнуть баланса $10 000 кратчайшим путём.\n\n")
+    skip()
 
-pravila = '''
-                            Правила игры
-Завод по очистке нефти покупает два вида сырой нефти (В и Н). Перегонка
-разделяет нефть на фракции: бензин (октановое число 90), лигроин (80), керосин
-(70), газойль, мазут и остаток. Выход продуктов дан в общей таблице:
-_____________________________________________________________________________
-|      Выход      | бензин | лигроин | керосин | газойль | мазут |  остаток |
------------------------------------------------------------------------------
-|        B        |  0.10  |   0.20  |   0.20  |   0.12  | 0.20  |   0.13   |
-|        H        |  0.15  |   0.25  |   0.18  |   0.08  | 0.19  |   0.12   |
-| выход R-бензина |  0.6   |   0.52  |   0.46  |    -    |   -   |     -    |
-| выход К-бензина |   -    |    -    |    -    |   0.28  | 0.2   |     -    |
-| выход К-масла   |   -    |    -    |    -    |   0.68  | 0.75  |     -    |
------------------------------------------------------------------------------
-Продукты перегонки могут использоваться непосредственно или могут
-пройти реформинг либо крекинг. Реформинг дает R-бензин с окт. числом 115.
-Крекинг дает К-масло и К-бензин с окт. числом 105. Также после обработки из
-1 ед остатка можно получить 0.5 ед смазочного масла.
-Для производства топливного мазута, газойль, К-масло, мазут и остаток
-смешивают в пропорции 10:4:3:1.
-Смешиванием бензина, лигроина, керосина, К- и R- бензина в нужных
-пропорциях получают два вида моторного бензина: А-84 (окт. ч. не меньше 84) и
-А-94 (окт. ч. не меньше 94). Смешиванием газойля (летучесть 1.0 ед), мазута (0.6)
-и К-масла (1.5) в различных пропорциях получают реактивное топливо (летучесть
-должна быть не выше 1). (Смешивание различных компонентов приводит к
-пропорциональному смешиванию их характеристик).
-Ежедневные поставки нефти В не больше 20 000 баррелей, нефти
-Н ≤ 30 000 баррелей.
-Могут быть переработаны не больше 45 000 баррелей сырой нефти в день.
-Максимум 10 000 баррелей продуктов могут быть подвергнуты реформингу, а
-объем крекинга - 8 000 баррелей/день.
-'''
-#print(pravila)
-#print(textwrap.fill(pravila, 100))
+    print("   Нефть   ".center(80, "*"))
+    print("Начинать нужно с нефти. Перегонка позволяет получить следующие продукты:")
+    data = [[], []]
+    col = 8
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["class"] == "Oil":
+            data[row].append("".center(col))
+            data[row + 1].append(all_data[i]["value"]["name"].center(col))
+            for k, v in all_data[i]["value"]["dist_params"].items():
+                data[row].append(all_data[k]["value"]["name"].center(col))
+                data[row + 1].append(str(v).center(col))
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Реформинг   ".center(80, "*"))
+    print("Бензин, Лигроин и Керосин могут быть подвергнуты реформингу.\n"
+          "Реформинг даёт следующие продукты:")
+    data = [["","R-Бензин"]]
+    col = 8
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["class"] == "PervichkaR":
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["dist_params"]["benzin_R"]).center(8)])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Крекинг   ".center(80, "*"))
+    print("Газойль и Мазут могут быть подвергнуты крекингу.\n"
+          "Крекинг позволяет получить следующие продукты:")
+    data = [["","К-Бензин", "К-Масло"]]
+    col = 8
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["class"] == "PervichkaK":
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["dist_params"]["benzin_K"]).center(col), str(all_data[i]["value"]["dist_params"]["maslo_K"]).center(col)])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Машинное топливо   ".center(80, "*"))
+    print("Бензин, Лигроин и Керосин горючие, имеют октановое число и могут быть смешаны \n"
+          "в бензин А84 м А94, у которых должно быть соответствующее октановое число")
+
+    data = [["","О.Ч.".center(col)]]
+    col = 8
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["value"]["octan"] > 0:
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["octan"]).center(col)])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Авиационное топливо   ".center(80, "*"))
+    print("Газойль, Мазут, К-Масло и Остаток летучи и могут быть смешаны в авиатопливо.\n"
+          "Летучесть авиатоплива должна быть не больше 1.\n"
+          "В авиатопливе должно быть не меньше одного компонента.")
+
+    data = [["","Летучесть".center(9)]]
+    col = 9
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["value"]["letuchest"] > 0:
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["letuchest"]).center(col)])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Топливный мазут   ".center(80, "*"))
+    print("Также Газойль, Мазут, К-Масло и Остаток могут быть смешаны в определённых\n"
+          "пропорциях для получения топливного мазута:")
+
+    data = [["","Часть".center(5)]]
+    col = 5
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["value"]["for_mazut"] > 0:
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["for_mazut"]).center(col)])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+    print("   Энергия   ".center(80, "*"))
+    print("Для Перегонки, Реформинга и Крекинга тратится энергия. Энергия ограничена,\n"
+          "но восстанавливается ежедневно.\n"
+          "Если энергия исчерпана то энергоёмкие процессы будут недоступны.\n"
+          "Дневной запас энергии может быть увеличен по цене ${} за кВт\n"
+          "Смешивание продуктов не тратит энергию.\n".format(all_data["power_price"]))
+    skip()
+
+    print("   Хранилища   ".center(80, "*"))
+    print("Все продукты требуют хранилищ, которые могут быть расширены за деньги.\n"
+          "Если хранилища продукта нет или в нём нет свободного места,\n"
+          "процесс получения этого продукта будет недоступен.\n")
+    skip()
+
+    print("   Цены   ".center(80, "*"))
+    print("Стоимость покупки продуктов в 2 раза выше цены продажи.\nЦены на продукты:")
+    data = [["","Стоимость".center(5)]]
+    col = 5
+    row = 0
+    for i in all_data.keys():
+        if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["value"]["price"] > 0:
+            data.append([all_data[i]["value"]["name"], "$" + str(all_data[i]["value"]["price"])])
+            row += 1
+    table = AsciiTable(data)
+    print(table.table)
+    print("\n")
+    skip()
+
+print("Приветствую. Очевидно, Вы запустили эту программу впервые.\n"
+      "Если желаете просмотреть справку и правила игры, нажмите \"Enter\"\n"
+      "Если желаете пропустить, введите что угодно")
+try:
+    a = input("")
+except:
+    exit()
+
+if a == "":
+    intro()
+
