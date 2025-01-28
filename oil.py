@@ -580,6 +580,7 @@ def iface_add_container():
 
 def iface_mix_mazut():
     clear()
+    iface_info()
     print("Изготовление мазута производится путём смешивания ингридиентов в следующих пропорциях:")
     ings = []
     coef = 0
@@ -635,7 +636,10 @@ def iface_mix_mazut():
 def iface_mix_aviatop():
     smes = {}
     #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
-
+    clear()
+    iface_info()
+    print(
+        "Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1\nИнгридиентов должно быть не меньше двух")
 
     def refresh_free():
         free = globals()["aviatop"].container["current"] - globals()["aviatop"].barrels
@@ -674,11 +678,6 @@ def iface_mix_aviatop():
             check_actions()
 
         ingridients.append("Отмена")
-        clear()
-
-        iface_info()
-        print(
-            "Операция получения авиатоплива производится путём смешивания летучих ингридиентов.\nЛетучесть смеси должна быть < 1\nИнгридиентов должно быть не меньше двух")
 
         select = [
           inquirer.List('action',
@@ -737,8 +736,8 @@ def iface_mix_aviatop():
 
 
     def show_smes():
-        clear()
-        print("Ингридиенты смеси:")
+
+        print("\nИнгридиенты смеси:")
         smes_vol = 0
         smes_let = 0
         for key, val in smes.items():
@@ -750,16 +749,30 @@ def iface_mix_aviatop():
             print("Необходимо добавить ингридиенты")
             print("Для получения нужной летучести смеси можно добавить:")
             for obj in get_all():
-                if obj.letuchest < 1 and obj.letuchest != 0 and obj.barrels > 0:
-                    dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
-                    print("{} {}".format(round(dobavk, 4), obj.name))
+                if obj in smes:
+                    if obj.letuchest < 1 and obj.letuchest != 0 and obj.barrels - smes[obj] > 0:
+                        dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                        if dobavk <= obj.barrels:
+                            print("{} {}".format(round(dobavk, 4), obj.name))
+                else:
+                    if obj.letuchest < 1 and obj.letuchest != 0 and obj.barrels > 0:
+                        dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                        if dobavk <= obj.barrels:
+                            print("{} {}".format(round(dobavk, 4), obj.name))
         elif smes_let / smes_vol < 1:
             print("Объём смеси - {} Летучесть смеси {} соответствует норме".format(smes_vol, round(smes_let / smes_vol), 4 ))
             print("Для получения большего объёма смеси можно добавить:")
             for obj in get_all():
-                if obj.letuchest > 1 and obj.letuchest != 0 and obj.barrels > 0:
-                    dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
-                    print("{} {}".format(round(dobavk, 4), obj.name))
+                if obj in smes:
+                    if obj.letuchest > 1 and obj.letuchest != 0 and obj.barrels - smes[obj] > 0:
+                        dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                        if dobavk <= obj.barrels:
+                            print("{} {}".format(round(dobavk, 4), obj.name))
+                else:
+                    if obj.letuchest > 1 and obj.letuchest != 0 and obj.barrels > 0:
+                        dobavk = (smes_vol * ((smes_let / smes_vol) - 1)) / (1 - obj.letuchest)
+                        if dobavk <= obj.barrels:
+                            print("{} {}".format(round(dobavk, 4), obj.name))
         elif smes_let / smes_vol == 1:
             print("Объём смеси - {} Летучесть смеси {} подходящая".format(smes_vol, round(smes_let / smes_vol), 4 ))
 
@@ -824,6 +837,7 @@ def iface_mix(need):
     #free = globals()["a" + str(need)].container["current"] - globals()["a" + str(need)].barrels
 
     clear()
+    iface_info()
     print("Операция получения бензина А" + str(need) + " производится путём смешивания октановых ингридиентов.\nОктановое число смеси должно быть > или = " + str(need))
 
     def refresh_free():
@@ -917,8 +931,7 @@ def iface_mix(need):
 
 
     def show_smes():
-        clear()
-        print("Ингридиенты смеси:")
+        print("\nИнгридиенты смеси:")
         smes_vol = 0
         smes_oct = 0
         for key, val in smes.items():
@@ -930,18 +943,31 @@ def iface_mix(need):
             print("Необходимо добавить ингридиенты")
             print("Для получения нужного октанового числа смеси можно добавить:")
             for obj in get_all():
-                if obj.octan > need and obj.barrels > 0:
-                    dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
-                    if dobavk >= 0:
-                        print("{} {}".format(int(dobavk + 1), obj.name))
+                if obj in smes:
+                    if obj.octan > need and obj.barrels - smes[obj] > 0:
+                        dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                        if dobavk > 0 and dobavk <= obj.barrels:
+                            print("{} {}".format(int(dobavk + 1), obj.name))
+                else:
+                    if obj.octan > need and obj.barrels > 0:
+                        dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                        if dobavk > 0 and dobavk <= obj.barrels :
+                            print("{} {}".format(int(dobavk + 1), obj.name))
+
         elif smes_oct // smes_vol > need:
             print("Объём смеси - {} Октановое число смеси {} достаточное".format(smes_vol, smes_oct // smes_vol))
             print("Для получения большего объёма смеси можно добавить:")
             for obj in get_all():
-                if obj.octan < need and obj.octan > 0 and obj.barrels > 0:
-                    dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
-                    if dobavk > 1:
-                        print("{} {}".format(int(dobavk), obj.name))
+                if obj in smes:
+                    if obj.octan < need and obj.octan > 0 and obj.barrels - smes[obj] > 0:
+                        dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                        if dobavk > 1 and obj.barrels > 0 and dobavk <= obj.barrels:
+                            print("{} {}".format(int(dobavk), obj.name))
+                else:
+                    if obj.octan < need and obj.octan > 0 and obj.barrels  > 0:
+                        dobavk = (smes_vol * ((smes_oct // smes_vol) - need)) / (need - obj.octan)
+                        if dobavk > 1 and obj.barrels > 0 and dobavk <= obj.barrels:
+                            print("{} {}".format(int(dobavk), obj.name))
         elif need == smes_oct // smes_vol:
             print("Объём смеси - {} Октановое число смеси {} подходящее".format(smes_vol, smes_oct // smes_vol))
 
@@ -949,6 +975,7 @@ def iface_mix(need):
 
     def check_actions():
         avail_actions = []
+
 
         smes_vol = 0
         smes_oct = 0
@@ -959,18 +986,16 @@ def iface_mix(need):
             avail_actions.append("Выполнить")
 
         free = refresh_free()
-        if free != 0:
-            avail_for_add = True
-            for ing in get_all():
-                if ing.octan != 0 and ing.barrels != 0:
-                    if ing in smes and ing.barrels - smes[ing] <= 0:
-                        continue
-                    elif free <= 0:
-                        continue
-                    else:
-                        avail_for_add = True
-        else:
-            avail_for_add = False
+        avail_for_add = False
+        for ing in get_all():
+            if ing.octan != 0 and ing.barrels != 0:
+                if ing in smes and ing.barrels - smes[ing] <= 0:
+                    continue
+                elif free <= 0:
+                    continue
+                elif free != 0:
+                    avail_for_add = True
+
         if avail_for_add:
             avail_actions.append("Добавить")
 
