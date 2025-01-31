@@ -4,6 +4,7 @@ from terminaltables import AsciiTable
 import inquirer
 import sys
 from os.path import isfile
+import help
 
 def clear():
     print("\033[H\033[J", end="")
@@ -1354,6 +1355,8 @@ if __name__ == "__main__":
         start(nick)
         load()
     else:
+        help.intro(nick)
+        clear()
         start(nick)
 
     check_avail_actions()
