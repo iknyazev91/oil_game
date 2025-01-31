@@ -1,20 +1,18 @@
-import textwrap
 import json
 from terminaltables import AsciiTable
-
-from oil import PervichkaR
 
 with open("start_params.json", "r", encoding="utf-8") as savefile:
     all_data = json.loads(savefile.read())
 
+
 def skip():
     try:
-        bbb = input("Дальше")
+        input("Дальше")
     except:
         exit()
 
-def intro(nick):
 
+def intro(nick):
     print("Приветствую, {}. Очевидно, Вы запустили эту программу впервые.\n"
           "Если желаете просмотреть справку и правила игры, нажмите \"Enter\"\n"
           "Если желаете пропустить, введите что угодно".format(nick))
@@ -23,9 +21,12 @@ def intro(nick):
     except:
         return
 
+    if a != "":
+        return
+
     print("   Правила игры   ".center(80, "*"))
-    print ("Покупайте Нефть, перегоняйте, перерабатывайте, смешивайте и продавайте.\n"
-            "Постарайтесь достигнуть баланса $10 000 кратчайшим путём.\n\n")
+    print("Покупайте Нефть, перегоняйте, перерабатывайте, смешивайте и продавайте.\n"
+          "Постарайтесь достигнуть баланса $10 000 кратчайшим путём.\n\n")
     skip()
 
     print("   Нефть   ".center(80, "*"))
@@ -49,7 +50,7 @@ def intro(nick):
     print("   Реформинг   ".center(80, "*"))
     print("Бензин, Лигроин и Керосин могут быть подвергнуты реформингу.\n"
           "Реформинг даёт следующие продукты:")
-    data = [["","R-Бензин"]]
+    data = [["", "R-Бензин"]]
     col = 8
     row = 0
     for i in all_data.keys():
@@ -64,12 +65,13 @@ def intro(nick):
     print("   Крекинг   ".center(80, "*"))
     print("Газойль и Мазут могут быть подвергнуты крекингу.\n"
           "Крекинг позволяет получить следующие продукты:")
-    data = [["","К-Бензин", "К-Масло"]]
+    data = [["", "К-Бензин", "К-Масло"]]
     col = 8
     row = 0
     for i in all_data.keys():
         if isinstance(all_data[i], dict) and "class" in all_data[i] and all_data[i]["class"] == "PervichkaK":
-            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["dist_params"]["benzin_K"]).center(col), str(all_data[i]["value"]["dist_params"]["maslo_K"]).center(col)])
+            data.append([all_data[i]["value"]["name"], str(all_data[i]["value"]["dist_params"]["benzin_K"]).center(col),
+                         str(all_data[i]["value"]["dist_params"]["maslo_K"]).center(col)])
             row += 1
     table = AsciiTable(data)
     print(table.table)
@@ -80,7 +82,7 @@ def intro(nick):
     print("Бензин, Лигроин и Керосин горючие, имеют октановое число и могут быть смешаны \n"
           "в бензин А84 м А94, у которых должно быть соответствующее октановое число")
 
-    data = [["","О.Ч.".center(col)]]
+    data = [["", "О.Ч.".center(col)]]
     col = 8
     row = 0
     for i in all_data.keys():
@@ -97,7 +99,7 @@ def intro(nick):
           "Летучесть авиатоплива должна быть не больше 1.\n"
           "В авиатопливе должно быть не меньше одного компонента.")
 
-    data = [["","Летучесть".center(9)]]
+    data = [["", "Летучесть".center(9)]]
     col = 9
     row = 0
     for i in all_data.keys():
@@ -113,7 +115,7 @@ def intro(nick):
     print("Также Газойль, Мазут, К-Масло и Остаток могут быть смешаны в определённых\n"
           "пропорциях для получения топливного мазута:")
 
-    data = [["","Часть".center(5)]]
+    data = [["", "Часть".center(5)]]
     col = 5
     row = 0
     for i in all_data.keys():
@@ -141,7 +143,7 @@ def intro(nick):
 
     print("   Цены   ".center(80, "*"))
     print("Стоимость покупки продуктов в 2 раза выше цены продажи.\nЦены на продукты:")
-    data = [["","Стоимость".center(5)]]
+    data = [["", "Стоимость".center(5)]]
     col = 5
     row = 0
     for i in all_data.keys():
@@ -152,7 +154,3 @@ def intro(nick):
     print(table.table)
     print("\n")
     skip()
-
-
-
-
